@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TI • Chamados</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <div class="max-w-6xl mx-auto p-4">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h1 class="text-2xl font-extrabold">⚙️ TI • Chamados</h1>
+        <p class="text-slate-600 text-sm">Lista e tratamento dos chamados registrados pelo sistema.</p>
+      </div>
+      <div class="flex gap-2">
+        <select id="fStatus" class="px-3 py-2 rounded-xl border border-slate-200 bg-white">
+          <option value="ABERTO">ABERTO</option>
+          <option value="EM ANDAMENTO">EM ANDAMENTO</option>
+          <option value="RESOLVIDO">RESOLVIDO</option>
+          <option value="CANCELADO">CANCELADO</option>
+          <option value="TODOS">TODOS</option>
+        </select>
+        <input id="fQ" placeholder="Buscar (protocolo, nome, setor, texto...)" class="w-72 px-3 py-2 rounded-xl border border-slate-200 bg-white" />
+        <button id="btnReload" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold">Atualizar</button>
+      </div>
+    </div>
+
+    <div id="msg" class="mt-3 hidden px-4 py-3 rounded-xl border"></div>
+
+    <div class="mt-4 bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+      <div class="p-3 border-b border-slate-100 flex items-center justify-between">
+        <div class="font-extrabold">Chamados</div>
+        <div id="count" class="text-sm text-slate-600"></div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 text-slate-600">
+            <tr>
+              <th class="text-left p-3">Protocolo</th>
+              <th class="text-left p-3">Data</th>
+              <th class="text-left p-3">Nome</th>
+              <th class="text-left p-3">Setor</th>
+              <th class="text-left p-3">Categoria</th>
+              <th class="text-left p-3">Prioridade</th>
+              <th class="text-left p-3">Status</th>
+              <th class="text-left p-3">Anexo</th>
+              <th class="text-left p-3">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tb" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Drawer -->
+    <div id="drawer" class="fixed inset-0 hidden">
+      <div class="absolute inset-0 bg-black/40" id="dwBg"></div>
+      <div class="absolute right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl p-5 overflow-y-auto">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div id="dwProt" class="text-xl font-extrabold"></div>
+            <div id="dwSub" class="text-sm text-slate-600"></div>
+          </div>
+          <button id="dwClose" class="px-3 py-2 rounded-xl border border-slate-200 font-bold">Fechar</button>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 gap-3">
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+            <div class="font-bold mb-2">Descrição</div>
+            <div id="dwDesc" class="text-sm whitespace-pre-wrap"></div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-bold text-slate-600">Status</label>
+              <select id="dwStatus" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white">
+                <option value="ABERTO">ABERTO</option>
+                <option value="EM ANDAMENTO">EM ANDAMENTO</option>
+                <option value="RESOLVIDO">RESOLVIDO</option>
+                <option value="CANCELADO">CANCELADO</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-bold text-slate-600">Responsável</label>
+              <input id="dwResp" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white" placeholder="Nome do técnico" />
+            </div>
+          </div>
+
+          <div>
+            <label class="text-xs font-bold text-slate-600">Observação</label>
+            <textarea id="dwObs" rows="4" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white" placeholder="Atualização do atendimento..."></textarea>
+          </div>
+
+          <div class="flex gap-2">
+            <a id="dwAnexo" target="_blank" class="px-4 py-2 rounded-xl border border-slate-200 font-bold hidden">Abrir anexo</a>
+            <button id="dwSave" class="px-4 py-2 rounded-xl bg-emerald-600 text-white font-extrabold">Salvar</button>
+          </div>
+
+          <div id="dwInfo" class="text-xs text-slate-500"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const tb = document.getElementById('tb');
+  const count = document.getElementById('count');
+  const msg = document.getElementById('msg');
+
+  const fStatus = document.getElementById('fStatus');
+  const fQ = document.getElementById('fQ');
+  document.getElementById('btnReload').addEventListener('click', load);
+
+  // Drawer
+  const drawer = document.getElementById('drawer');
+  const dwBg = document.getElementById('dwBg');
+  const dwClose = document.getElementById('dwClose');
+  const dwProt = document.getElementById('dwProt');
+  const dwSub = document.getElementById('dwSub');
+  const dwDesc = document.getElementById('dwDesc');
+  const dwStatus = document.getElementById('dwStatus');
+  const dwResp = document.getElementById('dwResp');
+  const dwObs = document.getElementById('dwObs');
+  const dwAnexo = document.getElementById('dwAnexo');
+  const dwSave = document.getElementById('dwSave');
+  const dwInfo = document.getElementById('dwInfo');
+
+  let currentLinha = null;
+
+  function toast(text, ok=true){
+    msg.classList.remove('hidden');
+    msg.className = 'mt-3 px-4 py-3 rounded-xl border ' + (ok ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-red-50 border-red-200 text-red-900');
+    msg.textContent = text;
+    setTimeout(()=>msg.classList.add('hidden'), 3500);
+  }
+
+  function openDrawer(item){
+    currentLinha = item.linha;
+    dwProt.textContent = item.protocolo || '';
+    dwSub.textContent = `${item.nome || ''} • ${item.setor || ''} • ${item.categoria || ''} • ${item.prioridade || ''}`;
+    dwDesc.textContent = item.descricao || '';
+    dwStatus.value = (item.status || 'ABERTO').toUpperCase();
+    dwResp.value = item.responsavel || '';
+    dwObs.value = item.obs || '';
+    dwInfo.textContent = `Criado em: ${item.carimbo || ''} | Atualizado: ${item.atualizado_em || ''}`;
+
+    if (item.anexo){
+      dwAnexo.href = item.anexo;
+      dwAnexo.classList.remove('hidden');
+    } else {
+      dwAnexo.classList.add('hidden');
+      dwAnexo.removeAttribute('href');
+    }
+
+    drawer.classList.remove('hidden');
+  }
+  function closeDrawer(){
+    drawer.classList.add('hidden');
+    currentLinha = null;
+  }
+  dwBg.addEventListener('click', closeDrawer);
+  dwClose.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && !drawer.classList.contains('hidden')) closeDrawer(); });
+
+  dwSave.addEventListener('click', ()=>{
+    if(!currentLinha) return;
+    const patch = {
+      status: dwStatus.value,
+      responsavel: dwResp.value,
+      obs: dwObs.value
+    };
+    dwSave.disabled = true;
+    google.script.run
+      .withSuccessHandler(()=>{
+        dwSave.disabled = false;
+        toast('Atualizado com sucesso!');
+        closeDrawer();
+        load();
+      })
+      .withFailureHandler((err)=>{
+        dwSave.disabled = false;
+        console.error(err);
+        toast('Falha ao atualizar.', false);
+      })
+      .ti_atualizarChamado(currentLinha, patch);
+  });
+
+  function badge(st){
+    st = String(st||'').toUpperCase();
+    const map = {
+      'ABERTO':'bg-red-50 text-red-700 border-red-200',
+      'EM ANDAMENTO':'bg-amber-50 text-amber-700 border-amber-200',
+      'RESOLVIDO':'bg-emerald-50 text-emerald-700 border-emerald-200',
+      'CANCELADO':'bg-slate-100 text-slate-700 border-slate-200'
+    };
+    return map[st] || 'bg-slate-100 text-slate-700 border-slate-200';
+  }
+
+  function rowHtml(it){
+    const anexo = it.anexo ? `<a class="text-blue-600 font-bold" target="_blank" href="${it.anexo}">Abrir</a>` : '-';
+    return `
+      <tr class="hover:bg-slate-50">
+        <td class="p-3 font-extrabold">${it.protocolo||''}</td>
+        <td class="p-3">${it.carimbo||''}</td>
+        <td class="p-3">${it.nome||''}</td>
+        <td class="p-3">${it.setor||''}</td>
+        <td class="p-3">${it.categoria||''}</td>
+        <td class="p-3">${it.prioridade||''}</td>
+        <td class="p-3"><span class="inline-flex px-2 py-1 rounded-lg border text-xs font-extrabold ${badge(it.status)}">${it.status||''}</span></td>
+        <td class="p-3">${anexo}</td>
+        <td class="p-3">
+          <button class="px-3 py-2 rounded-xl bg-slate-900 text-white font-bold" data-open="${it.linha}">Abrir</button>
+        </td>
+      </tr>
+    `;
+  }
+
+  function load(){
+    tb.innerHTML = `<tr><td class="p-4 text-slate-500" colspan="9">Carregando...</td></tr>`;
+    google.script.run
+      .withSuccessHandler((res)=>{
+        const arr = (res && res.chamados) ? res.chamados : [];
+        count.textContent = `${arr.length} registros`;
+        if(!arr.length){
+          tb.innerHTML = `<tr><td class="p-4 text-slate-500" colspan="9">Nenhum chamado encontrado.</td></tr>`;
+          return;
+        }
+        tb.innerHTML = arr.map(rowHtml).join('');
+        tb.querySelectorAll('[data-open]').forEach(btn=>{
+          btn.addEventListener('click', ()=>{
+            const linha = parseInt(btn.getAttribute('data-open'),10);
+            const item = arr.find(x=>x.linha===linha);
+            if(item) openDrawer(item);
+          });
+        });
+      })
+      .withFailureHandler((err)=>{
+        console.error(err);
+        tb.innerHTML = `<tr><td class="p-4 text-red-600" colspan="9">Erro ao carregar.</td></tr>`;
+      })
+      .ti_listarChamados({ status: fStatus.value, q: fQ.value });
+  }
+
+  load();
+</script>
+</body>
+</html>
