@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hub – Atendimentos</title>
+  <style>
+    :root{
+      --bg-url: url('https://lh3.googleusercontent.com/d/1198pJcJXG4o7_YZOwLC0QvdrBg53Z0Th=w2400');
+      --brand-900:#0b2742; --brand-800:#0e3557; --brand-700:#114266; --brand-600:#16527c;
+      --card-bg: rgba(255,255,255,.92); --card-border: rgba(255,255,255,.6);
+      --text:#1f2a37; --muted:#6b7280; --primary:#1677ff; --primary-700:#0e5ed6;
+    }
+    html, body { height:100%; margin:0; }
+    body{
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color:var(--text); display:flex; align-items:center; justify-content:center;
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(255,255,255,.1), transparent 60%),
+        radial-gradient(1000px 500px at 110% 0%, rgba(255,255,255,.1), transparent 60%),
+        linear-gradient(135deg, var(--brand-900) 0%, var(--brand-800) 45%, var(--brand-700) 100%);
+      position:relative; overflow:hidden;
+    }
+    body::after{
+      content:""; position:fixed; inset:0;
+      background-image:
+        linear-gradient(transparent calc(100% - 1px), rgba(255,255,255,.06) 1px),
+        linear-gradient(90deg, transparent calc(100% - 1px), rgba(255,255,255,.06) 1px);
+      background-size:30px 30px, 30px 30px; opacity:.4; pointer-events:none; mix-blend-mode:soft-light;
+    }
+    .bg-mark{
+      position:fixed; left:50%; top:50%; transform:translate(-50%, -50%) rotate(-1deg);
+      width:clamp(240px, 36vw, 560px); aspect-ratio: 1/1;
+      background: var(--bg-url) center / contain no-repeat; opacity:.15;
+      filter: drop-shadow(0 20px 60px rgba(0,0,0,.4)) saturate(.95); pointer-events:none; z-index:0;
+    }
+    .wrap{ position:relative; z-index:1; width:100%; display:flex; justify-content:center; padding:24px; }
+    .card{
+      width:min(92vw, 820px);
+      background: var(--card-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border:1px solid var(--card-border); border-radius:20px; padding:36px 28px;
+      box-shadow: 0 20px 40px rgba(0,0,0,.25), 0 1px 0 rgba(255,255,255,.3) inset, 0 0 0 1px rgba(255,255,255,.1) inset;
+      text-align:center;
+    }
+    h1{ margin:0 0 6px; font-weight:800; font-size:1.9rem; color:#0f172a; letter-spacing:.2px; }
+    .subtitle{ margin:6px 0 22px; color:var(--muted); font-size:.98rem; }
+    .actions{ display:flex; gap:18px; justify-content:center; flex-wrap:wrap; margin-top:8px; }
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center; gap:10px;
+      min-width:280px; padding:16px 22px; border-radius:12px; font-weight:800; font-size:1rem;
+      text-decoration:none; color:#fff;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-700) 100%);
+      box-shadow: 0 6px 18px rgba(22,119,255,.35); transition: transform .2s ease, box-shadow .2s ease, opacity .2s ease;
+    }
+    .btn:hover{ transform: translateY(-2px); box-shadow:0 10px 28px rgba(22,119,255,.45); }
+    .btn[aria-busy="true"]{ opacity:.75; pointer-events:none; position:relative; }
+    .btn[aria-busy="true"]::after{
+      content:""; position:absolute; right:14px; width:16px; height:16px; border-radius:50%;
+      border:2px solid rgba(255,255,255,.85); border-top-color:transparent; animation:spin .9s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .alert{
+      display:none; margin:18px auto 0; max-width:640px;
+      padding:12px 14px; background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:10px; font-weight:600;
+    }
+    footer{ margin-top:22px; color:var(--muted); font-size:.85rem; }
+  </style>
+</head>
+<body>
+  <div class="bg-mark" aria-hidden="true"></div>
+
+  <main class="wrap">
+    <section class="card">
+      <h1>Hub – Atendimentos</h1>
+      <p class="subtitle">Selecione uma opção:</p>
+
+      <div class="actions">
+        <a href="#" class="btn" data-view="formulario">Formulário de Requerimento</a>
+        <a href="#" class="btn" data-view="baixa">Baixa / Entrega</a>
+      </div>
+
+      <div id="alert" class="alert"></div>
+      <footer>&copy; 2025 SEMFAS</footer>
+    </section>
+  </main>
+
+  <script>
+  (function(){
+    const alertBox = document.getElementById('alert');
+    let busy = false, navigated = false;
+
+    function showError(msg){
+      if(!alertBox) return;
+      alertBox.textContent = msg || 'Erro inesperado.';
+      alertBox.style.display = 'block';
+    }
+    function setBusy(btn, busyFlag){
+      if(!btn) return;
+      if(busyFlag){
+        btn.setAttribute('aria-busy','true');
+        btn.dataset.label = btn.textContent;
+        btn.textContent = 'Abrindo...';
+      }else{
+        btn.removeAttribute('aria-busy');
+        if(btn.dataset.label) btn.textContent = btn.dataset.label;
+      }
+    }
+    function hardRedirect(view){
+      try {
+        // garante navegação mesmo que o Apps Script não injete o HTML
+        const url = new URL(window.top.location.href);
+        url.search = '?view=' + encodeURIComponent(view);
+        window.top.location.href = url.toString();
+        navigated = true;
+      } catch(_){
+        showError('Falha ao redirecionar para "'+view+'".');
+      }
+    }
+
+    function abrir(view, btn){
+      if (busy) return;
+      busy = true;
+      alertBox.style.display = 'none';
+      setBusy(btn, true);
+
+      // watchdog: se nada acontecer rapidamente, força redirect
+      const softTimer = setTimeout(()=>{ if(!navigated) hardRedirect(view); }, 1200);
+      const hardTimer = setTimeout(()=>{
+        if(!navigated){
+          setBusy(btn,false); busy=false;
+          showError('Conexão lenta. Tente novamente.');
+        }
+      }, 8000);
+
+      // tenta injetar HTML do servidor
+      try{
+        if (!google || !google.script || !google.script.run) { hardRedirect(view); return; }
+
+        google.script.run
+          .withSuccessHandler(function(html){
+            if (navigated) return;
+            clearTimeout(softTimer); clearTimeout(hardTimer);
+            setBusy(btn,false); busy=false;
+            if (typeof html !== 'string' || !html.trim()) { hardRedirect(view); return; }
+            navigated = true;
+            document.open(); document.write(html); document.close();
+          })
+          .withFailureHandler(function(_err){
+            if (navigated) return;
+            clearTimeout(softTimer); clearTimeout(hardTimer);
+            setBusy(btn,false); busy=false;
+            hardRedirect(view);
+          })
+          .renderView(view);
+      } catch(e){
+        clearTimeout(softTimer); clearTimeout(hardTimer);
+        setBusy(btn,false); busy=false;
+        hardRedirect(view);
+      }
+    }
+
+    // Delegação de clique
+    document.addEventListener('click', function(ev){
+      const el = ev.target.closest('[data-view]');
+      if(!el) return;
+      ev.preventDefault();
+      const view = el.getAttribute('data-view') || '';
+      if(!view) return;
+      abrir(view, el);
+    });
+
+    // atalhos: 1 formulário, 2 baixa
+    window.addEventListener('keydown', (e)=>{
+      if (e.key === '1') abrir('formulario', document.querySelector('[data-view="formulario"]'));
+      if (e.key === '2') abrir('baixa',       document.querySelector('[data-view="baixa"]'));
+    });
+  })();
+  </script>
+</body>
+</html>
