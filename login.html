@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sistema SEMFAS – Login</title>
+  <style>
+    :root{
+      --bg-url: url('https://lh3.googleusercontent.com/d/1198pJcJXG4o7_YZOwLC0QvdrBg53Z0Th=w2400');
+      --brand-900:#0b2742; --brand-800:#0e3557; --brand-700:#114266; --brand-600:#16527c;
+      --card-bg: rgba(255,255,255,.92); --card-border: rgba(255,255,255,.6);
+      --text:#1f2a37; --muted:#6b7280; --primary:#1677ff; --primary-700:#0e5ed6;
+      --line:#e2e8f0; --danger:#dc2626;
+    }
+    html, body { height:100%; margin:0; }
+    body{
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color:var(--text); display:flex; align-items:center; justify-content:center;
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(255,255,255,.1), transparent 60%),
+        radial-gradient(1000px 500px at 110% 0%, rgba(255,255,255,.1), transparent 60%),
+        linear-gradient(135deg, var(--brand-900) 0%, var(--brand-800) 45%, var(--brand-700) 100%);
+      position:relative; overflow:hidden;
+    }
+    body::after{
+      content:""; position:fixed; inset:0;
+      background-image:
+        linear-gradient(transparent calc(100% - 1px), rgba(255,255,255,.06) 1px),
+        linear-gradient(90deg, transparent calc(100% - 1px), rgba(255,255,255,.06) 1px);
+      background-size:30px 30px, 30px 30px; opacity:.4; pointer-events:none; mix-blend-mode:soft-light;
+    }
+    .bg-mark{
+      position:fixed; left:50%; top:50%; transform:translate(-50%, -50%) rotate(-1deg);
+      width:clamp(240px, 36vw, 560px); aspect-ratio: 1/1;
+      background: var(--bg-url) center / contain no-repeat; opacity:.15;
+      filter: drop-shadow(0 20px 60px rgba(0,0,0,.4)) saturate(.95); pointer-events:none; z-index:0;
+    }
+
+    .login-container{
+      position:relative; z-index:1; width:min(92vw, 460px);
+      background: var(--card-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border:1px solid var(--card-border); border-radius:20px; padding:34px 38px;
+      box-shadow: 0 20px 40px rgba(0,0,0,.25), 0 1px 0 rgba(255,255,255,.3) inset, 0 0 0 1px rgba(255,255,255,.1) inset;
+    }
+    .login-container::before{
+      content:""; position:absolute; left:0; top:20px; bottom:20px; width:4px;
+      background: linear-gradient(180deg, var(--primary), var(--brand-600));
+      border-top-right-radius:4px; border-bottom-right-radius:4px; opacity:.9; box-shadow: 0 0 10px rgba(22,119,255,.3);
+    }
+    .top-row{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      margin-bottom:10px;
+    }
+    .chip{
+      display:inline-flex; align-items:center; gap:8px;
+      font-size:.78rem; font-weight:800; letter-spacing:.3px;
+      padding:8px 10px; border-radius:999px;
+      background: rgba(22,119,255,.10);
+      border:1px solid rgba(22,119,255,.25);
+      color:#0f172a;
+      user-select:none;
+    }
+    .gear-btn{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#fff;
+      color:#0f172a;
+      font-weight:800;
+      cursor:pointer;
+      transition:transform .12s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+    .gear-btn:hover{ transform: translateY(-1px); border-color:#cbd5e0; box-shadow:0 6px 18px rgba(15,23,42,.08); }
+    .gear-btn:active{ transform: translateY(0px); }
+
+    h2{ margin:8px 0 10px; font-weight:800; font-size:1.65rem; letter-spacing:.3px; color:#0f172a; text-align:center; }
+    .subtitle{ margin:0 0 18px; text-align:center; color:var(--muted); }
+    .req{ color:var(--danger); font-weight:900; margin-left:4px; }
+
+    label{ display:block; font-size:.9rem; font-weight:700; color:#111827; margin:12px 0 8px; }
+    select, input, textarea{
+      width:100%; padding:14px 16px; border-radius:12px; border:2px solid var(--line); background:#fff; outline:none;
+      transition:all .2s ease; box-sizing:border-box; font-size:1rem;
+    }
+    select:focus, input:focus, textarea:focus{
+      border-color: var(--primary); box-shadow:0 0 0 3px rgba(22,119,255,.12); transform: translateY(-1px);
+    }
+    select:hover, input:hover, textarea:hover{ border-color:#cbd5e0; }
+
+    button.primary{
+      width:100%; margin-top:18px; padding:16px 20px; border:none; border-radius:12px; font-weight:800; font-size:1rem;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-700) 100%); color:#fff; cursor:pointer; transition:all .3s ease;
+      box-shadow: 0 4px 15px rgba(22,119,255,.3);
+      display:flex; align-items:center; justify-content:center; gap:10px;
+    }
+    button.primary:hover{ transform: translateY(-2px); box-shadow: 0 8px 25px rgba(22,119,255,.4); }
+    button.primary:disabled{ opacity:.7; cursor:not-allowed; transform:none; }
+
+    .alert{ margin-top:12px; padding:12px 14px; background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:10px; font-weight:700; display:none; text-align:center; }
+    .ok{ margin-top:12px; padding:12px 14px; background:#dcfce7; color:#166534; border:1px solid #bbf7d0; border-radius:10px; font-weight:800; display:none; text-align:center; }
+    .footer-info{ text-align:center; margin-top:18px; font-size:.8rem; color:var(--muted); opacity:.9; }
+
+    .overlay{ position:fixed; inset:0; background:rgba(2,6,23,.55); display:none; align-items:center; justify-content:center; z-index:50; padding:18px; }
+    .modal{
+      width:min(92vw, 940px);
+      background:#fff;
+      border-radius:18px;
+      border:1px solid rgba(226,232,240,.8);
+      box-shadow:0 30px 70px rgba(0,0,0,.35);
+      overflow:hidden;
+    }
+    .modal-h{
+      padding:16px 18px;
+      background:linear-gradient(135deg,#f8fafc,#eef2ff);
+      border-bottom:1px solid #e2e8f0;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .modal-title{ font-weight:900; color:#0f172a; display:flex; align-items:center; gap:10px; }
+    .close{
+      border:1px solid #e2e8f0; background:#fff; border-radius:12px;
+      padding:10px 12px; cursor:pointer; font-weight:900;
+    }
+    .modal-b{ padding:16px 18px 18px 18px; }
+
+    .grid3{ display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; }
+    .full{ grid-column: 1 / -1; }
+    @media (max-width: 900px){ .grid3{ grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px){ .grid3{ grid-template-columns: 1fr; } }
+
+    .hint{ font-size:.82rem; color:#64748b; margin-top:6px; }
+    .mini{ font-size:.85rem; color:#64748b; margin-top:10px; }
+    .row-actions{ display:flex; gap:10px; margin-top:14px; }
+    .btn-sec{
+      flex:1; border-radius:12px; padding:14px 14px; font-weight:900;
+      border:2px solid #e2e8f0; background:#fff; cursor:pointer;
+    }
+    .btn-sec:hover{ border-color:#cbd5e0; }
+    .btn-send{
+      flex:1; border-radius:12px; padding:14px 14px; font-weight:900;
+      border:none; cursor:pointer; color:#fff;
+      background:linear-gradient(135deg,#0ea5e9,#2563eb);
+      box-shadow:0 10px 22px rgba(37,99,235,.25);
+      display:flex; align-items:center; justify-content:center; gap:10px;
+    }
+    .btn-send:disabled{ opacity:.7; cursor:not-allowed; box-shadow:none; }
+    .spin{
+      width:16px;height:16px;border-radius:999px;border:2px solid rgba(255,255,255,.55);
+      border-top-color:#fff; animation:rot .8s linear infinite;
+    }
+    @keyframes rot{ to{ transform:rotate(360deg);} }
+
+    input[type="file"]{ padding:12px 12px; }
+    .file-pill{
+      margin-top:8px;
+      display:none;
+      font-size:.85rem;
+      color:#0f172a;
+      background:rgba(22,119,255,.08);
+      border:1px solid rgba(22,119,255,.18);
+      border-radius:12px;
+      padding:10px 12px;
+      word-break: break-word;
+    }
+
+    #c_dep_outro_wrap{ display:none; }
+  </style>
+</head>
+
+<body>
+  <div class="bg-mark" aria-hidden="true"></div>
+
+  <div class="login-container">
+    <div class="top-row">
+      <div class="chip">SEMFAS • Acesso Interno</div>
+      <button class="gear-btn" type="button" id="btnChamados" title="Abrir Chamado">
+        ⚙️ Chamados
+      </button>
+    </div>
+
+    <h2>Sistema SEMFAS – Login</h2>
+    <p class="subtitle">Acesse com seu setor e credenciais</p>
+
+    <form id="loginForm" novalidate>
+      <label for="setor">Setor <span class="req">*</span></label>
+      <select id="setor" name="setor" required>
+        <option value="">Carregando setores...</option>
+      </select>
+
+      <label for="usuario">Usuário <span class="req">*</span></label>
+      <input type="text" id="usuario" name="usuario" placeholder="Digite seu usuário" required autocomplete="username">
+
+      <label for="senha">Senha <span class="req">*</span></label>
+      <input type="password" id="senha" name="senha" placeholder="Digite sua senha" required autocomplete="current-password">
+
+      <button type="submit" class="primary" id="btnLogin">
+        <span id="btnTxt">Entrar</span>
+        <span id="btnSpin" class="spin" style="display:none"></span>
+      </button>
+
+      <div id="erro" class="alert"></div>
+    </form>
+
+    <div class="footer-info">&copy; 2026 SEMFAS • Sistema Corporativo</div>
+  </div>
+
+  <!-- MODAL DE CHAMADOS -->
+  <div class="overlay" id="ovl">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="ttl">
+      <div class="modal-h">
+        <div class="modal-title" id="ttl">⚙️ Abrir Chamado</div>
+        <button class="close" type="button" id="btnClose">Fechar</button>
+      </div>
+
+      <div class="modal-b">
+        <div class="grid3">
+          <div>
+            <label for="c_nome">Seu Nome <span class="req">*</span></label>
+            <input id="c_nome" placeholder="Digite seu nome completo" autocomplete="name" />
+          </div>
+
+          <div>
+            <label for="c_email">Seu Email <span class="req">*</span></label>
+            <input id="c_email" type="email" placeholder="seu.email@empresa.com" autocomplete="email" />
+          </div>
+
+          <div>
+            <label for="c_tel">Seu Telefone/WhatsApp <span class="req">*</span></label>
+            <input id="c_tel" type="tel" placeholder="(DDD) 90000-0000" maxlength="15" autocomplete="tel" />
+          </div>
+
+          <div>
+            <label for="c_dep">Setor / Local <span class="req">*</span></label>
+            <select id="c_dep">
+              <option value="">Selecione...</option>
+            </select>
+
+            <div id="c_dep_outro_wrap">
+              <div class="hint">Se escolheu <b>OUTROS</b>, descreva aqui:</div>
+              <input id="c_dep_outro" placeholder="Digite o setor/local" />
+            </div>
+          </div>
+
+          <div>
+            <label for="c_categoria">Categoria <span class="req">*</span></label>
+            <select id="c_categoria">
+              <option value="">Selecione...</option>
+              <option value="Hardware">Hardware (Computador, Impressora, etc)</option>
+              <option value="Software">Software (Programas, Sistemas)</option>
+              <option value="Rede">Rede / Internet</option>
+              <option value="Email">Email</option>
+              <option value="Telefonia">Telefonia</option>
+              <option value="Acesso">Acesso / Senha</option>
+              <option value="Instalacao">Instalação / Configuração</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="c_prioridade">Prioridade <span class="req">*</span></label>
+            <select id="c_prioridade">
+              <option value="">Selecione...</option>
+              <option value="baixa">🟢 Baixa - Pode esperar</option>
+              <option value="media">🟡 Média - Importante</option>
+              <option value="alta">🟠 Alta - Urgente</option>
+              <option value="urgente">🔴 Urgente - Sistema parado</option>
+            </select>
+          </div>
+
+          <div class="full">
+            <label for="c_desc">Descreva o Problema <span class="req">*</span></label>
+            <textarea id="c_desc" rows="6" placeholder="Descreva o problema com o máximo de detalhes possível."></textarea>
+          </div>
+
+          <div class="full">
+            <label for="c_file">Anexar Arquivo (Opcional)</label>
+            <input type="file" id="c_file"
+              accept=".jpg,.jpeg,.png,.gif,.mp4,.mov,.avi,.mkv,.pdf,.doc,.docx,.txt" />
+            <div class="hint">Formatos aceitos — máx. 5MB</div>
+            <div id="c_fileInfo" class="file-pill"></div>
+          </div>
+        </div>
+
+        <div id="c_ok" class="ok"></div>
+        <div id="c_err" class="alert"></div>
+
+        <div class="row-actions">
+          <button type="button" class="btn-sec" id="btnLimpar">Limpar</button>
+          <button type="button" class="btn-send" id="btnEnviar">
+            <span id="btnEnviarTxt">Enviar Chamado</span>
+            <span id="btnEnviarSpin" class="spin" style="display:none"></span>
+          </button>
+        </div>
+
+        <div class="mini">O chamado é registrado na planilha (aba <b>Chamados</b>) com status <b>ABERTO</b>.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**********************
+     * LOGIN (corrigido)
+     **********************/
+    const selectSetor = document.getElementById('setor');
+    const erro = document.getElementById('erro');
+
+    const form = document.getElementById('loginForm');
+    const btnLogin  = document.getElementById('btnLogin');
+    const btnTxt = document.getElementById('btnTxt');
+    const btnSpin = document.getElementById('btnSpin');
+
+    const elUsuario = document.getElementById('usuario');
+    const elSenha   = document.getElementById('senha');
+
+    function showLoginError(msg){
+      erro.textContent = msg || 'Erro.';
+      erro.style.display = 'block';
+    }
+    function clearLoginError(){
+      erro.textContent = '';
+      erro.style.display = 'none';
+    }
+    function setBusyLogin(isBusy){
+      btnLogin.disabled = !!isBusy;
+      btnSpin.style.display = isBusy ? 'inline-block' : 'none';
+      btnTxt.textContent = isBusy ? 'Entrando...' : 'Entrar';
+    }
+
+    // Carrega setores do Code.gs (função: listarSetores)
+    function carregarSetores(){
+      selectSetor.innerHTML = '<option value="">Carregando setores...</option>';
+
+      google.script.run
+        .withSuccessHandler(function(setores){
+          selectSetor.innerHTML = '<option value="">Selecione o Setor</option>';
+          (setores || []).forEach(function(s){
+            if(!s) return;
+            const o = document.createElement('option');
+            o.value = s; o.textContent = s;
+            selectSetor.appendChild(o);
+          });
+        })
+        .withFailureHandler(function(err){
+          console.error('[listarSetores]', err);
+          selectSetor.innerHTML = '<option value="">Selecione o Setor</option>';
+          const msg = (err && err.message) ? err.message : 'Falha ao listar setores.';
+          showLoginError('Erro ao carregar setores: ' + msg);
+        })
+        .listarSetores();
+    }
+    carregarSetores();
+
+    // Login de verdade (chama autenticarERetornarTela no Code.gs)
+    function entrar(){
+      clearLoginError();
+
+      const setor   = (selectSetor.value || '').trim();
+      const usuario = (elUsuario.value || '').trim();
+      const senha   = (elSenha.value || '').trim();
+
+      if(!setor || !usuario || !senha){
+        showLoginError('Preencha Setor, Usuário e Senha.');
+        return;
+      }
+
+      setBusyLogin(true);
+
+      google.script.run
+        .withSuccessHandler(function(res){
+          if (!res || !res.ok){
+            setBusyLogin(false);
+            showLoginError('Usuário ou senha inválidos.');
+            return;
+          }
+
+          // ✅ ESSENCIAL: navegar no TOP (evita tela branca do iframe)
+          const url = res.redirectUrl || ('?view=' + encodeURIComponent(res.view || 'formulario'));
+          window.open(url, '_top');
+        })
+        .withFailureHandler(function(err){
+          console.error('[autenticarERetornarTela]', err);
+          setBusyLogin(false);
+          const msg = (err && err.message) ? err.message : 'Falha no login.';
+          showLoginError('Erro no login: ' + msg);
+        })
+        .autenticarERetornarTela(setor, usuario, senha);
+    }
+
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      entrar();
+    });
+
+    /**********************
+     * CHAMADOS (modal)
+     **********************/
+    // ========= CHAMADO: setores fixos =========
+    const CHAMADO_SETORES_FIXOS = [
+      'SECRETARIA','CAD1','CAD2','CRAM','ESTATÍSTICA',
+      'CRAS ANGELA MARIA (NOVO HORIZONTE)',
+      'CRAS DR. FRANKLIN (PARQUE DOS FAROIS)',
+      'CRAS MARIA JOSÉ (JARDIM)',
+      'CRAS PROF MARIA LUIZA (MARCOS FREIRE I)',
+      'CRAS ZILDA ARNS (JOÃO ALVES)',
+      'CREAS LEONEL BRIZOLA (PARQUE DOS FAROIS)',
+      'CREAS MARCOS FREIRE',
+      'OUTROS',
+    ];
+
+    const cDep = document.getElementById('c_dep');
+    const cDepOutroWrap = document.getElementById('c_dep_outro_wrap');
+    const cDepOutro = document.getElementById('c_dep_outro');
+
+    (function fillChamadoSetores(){
+      const seen = new Set();
+      CHAMADO_SETORES_FIXOS.forEach((s)=>{
+        const v = String(s||'').trim();
+        if(!v) return;
+        const k = v.toUpperCase();
+        if(seen.has(k)) return;
+        seen.add(k);
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        cDep.appendChild(opt);
+      });
+    })();
+
+    cDep.addEventListener('change', ()=>{
+      const v = String(cDep.value||'').trim().toUpperCase();
+      if(v === 'OUTROS'){
+        cDepOutroWrap.style.display = 'block';
+        setTimeout(()=>cDepOutro.focus(), 10);
+      }else{
+        cDepOutroWrap.style.display = 'none';
+        cDepOutro.value = '';
+      }
+    });
+
+    // ========= CHAMADOS (modal) =========
+    const ovl = document.getElementById('ovl');
+    const btnChamados = document.getElementById('btnChamados');
+    const btnClose = document.getElementById('btnClose');
+    const btnLimpar = document.getElementById('btnLimpar');
+    const btnEnviar = document.getElementById('btnEnviar');
+    const btnEnviarTxt = document.getElementById('btnEnviarTxt');
+    const btnEnviarSpin = document.getElementById('btnEnviarSpin');
+
+    const cNome  = document.getElementById('c_nome');
+    const cEmail = document.getElementById('c_email');
+    const cTel   = document.getElementById('c_tel');
+    const cCat   = document.getElementById('c_categoria');
+    const cPri   = document.getElementById('c_prioridade');
+    const cDesc  = document.getElementById('c_desc');
+    const cFile  = document.getElementById('c_file');
+    const cFileInfo = document.getElementById('c_fileInfo');
+    const cOk = document.getElementById('c_ok');
+    const cErr = document.getElementById('c_err');
+
+    function clearAlerts(){
+      cOk.style.display = 'none';
+      cErr.style.display = 'none';
+      cErr.textContent = '';
+      cOk.textContent = '';
+    }
+    function showErr(msg){
+      cOk.style.display = 'none';
+      cErr.textContent = msg;
+      cErr.style.display = 'block';
+    }
+    function showOk(msg){
+      cErr.style.display = 'none';
+      cOk.textContent = msg;
+      cOk.style.display = 'block';
+    }
+
+    function openChamado(){
+      clearAlerts();
+      try{
+        const n = localStorage.getItem('semfas_ch_nome') || '';
+        const e = localStorage.getItem('semfas_ch_email') || '';
+        const t = localStorage.getItem('semfas_ch_tel') || '';
+        if (n && !cNome.value) cNome.value = n;
+        if (e && !cEmail.value) cEmail.value = e;
+        if (t && !cTel.value) cTel.value = t;
+      }catch(_){}
+
+      ovl.style.display = 'flex';
+      setTimeout(()=> (cNome.value ? cDesc.focus() : cNome.focus()), 30);
+    }
+    function closeChamado(){ ovl.style.display = 'none'; }
+
+    btnChamados.addEventListener('click', openChamado);
+    btnClose.addEventListener('click', closeChamado);
+    ovl.addEventListener('click', (e)=>{ if(e.target===ovl) closeChamado(); });
+    document.addEventListener('keydown', (e)=>{
+      if (e.key === 'Escape' && ovl.style.display === 'flex') closeChamado();
+    });
+
+    function maskPhoneBR(v){
+      v = (v || '').replace(/\D/g,'').slice(0,11);
+      if (!v) return '';
+      if (v.length <= 2) return '(' + v;
+      if (v.length <= 6) return '(' + v.slice(0,2) + ') ' + v.slice(2);
+      if (v.length <= 10) return '(' + v.slice(0,2) + ') ' + v.slice(2,6) + '-' + v.slice(6);
+      return '(' + v.slice(0,2) + ') ' + v.slice(2,7) + '-' + v.slice(7);
+    }
+    cTel.addEventListener('input', ()=>{ cTel.value = maskPhoneBR(cTel.value); });
+
+    const MAX_FILE = 5 * 1024 * 1024; // 5MB
+    cFile.addEventListener('change', ()=>{
+      clearAlerts();
+      cFileInfo.style.display = 'none';
+      cFileInfo.textContent = '';
+
+      const f = cFile.files && cFile.files[0];
+      if (!f) return;
+
+      if (f.size > MAX_FILE){
+        showErr('Arquivo acima de 5MB. Selecione um arquivo menor.');
+        cFile.value = '';
+        return;
+      }
+      cFileInfo.textContent = `📎 ${f.name} (${Math.ceil(f.size/1024)} KB)`;
+      cFileInfo.style.display = 'block';
+    });
+
+    btnLimpar.addEventListener('click', ()=>{
+      cNome.value = '';
+      cEmail.value = '';
+      cTel.value = '';
+      cDep.value = '';
+      cDepOutro.value = '';
+      cDepOutroWrap.style.display = 'none';
+      cCat.value = '';
+      cPri.value = '';
+      cDesc.value = '';
+      cFile.value = '';
+      cFileInfo.style.display = 'none';
+      cFileInfo.textContent = '';
+      clearAlerts();
+      cNome.focus();
+    });
+
+    function readFileAsBase64(file){
+      return new Promise((resolve, reject)=>{
+        const reader = new FileReader();
+        reader.onload = () => {
+          try{
+            const dataUrl = reader.result || '';
+            const base64 = String(dataUrl).split(',')[1] || '';
+            resolve(base64);
+          }catch(e){ reject(e); }
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function setSending(isSending){
+      btnEnviar.disabled = isSending;
+      btnEnviarTxt.textContent = isSending ? 'Enviando...' : 'Enviar Chamado';
+      btnEnviarSpin.style.display = isSending ? 'inline-block' : 'none';
+    }
+
+    function validEmail(v){
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||'').trim());
+    }
+
+    btnEnviar.addEventListener('click', async ()=>{
+      clearAlerts();
+
+      const nome  = (cNome.value || '').trim();
+      const email = (cEmail.value || '').trim();
+      const tel   = (cTel.value || '').trim();
+      const depSel = (cDep.value || '').trim();
+      const depOutro = (cDepOutro.value || '').trim();
+      const dep   = (depSel.toUpperCase() === 'OUTROS') ? depOutro : depSel;
+      const cat   = (cCat.value || '').trim();
+      const pri   = (cPri.value || '').trim();
+      const desc  = (cDesc.value || '').trim();
+
+      if(!nome || !email || !tel || !dep || !cat || !pri || !desc){
+        showErr('Preencha todos os campos obrigatórios (*) para abrir o chamado.');
+        return;
+      }
+      if(!validEmail(email)){
+        showErr('E-mail inválido. Verifique e tente novamente.');
+        return;
+      }
+
+      try{
+        localStorage.setItem('semfas_ch_nome', nome);
+        localStorage.setItem('semfas_ch_email', email);
+        localStorage.setItem('semfas_ch_tel', tel);
+      }catch(_){}
+
+      const payload = {
+        requester_name: nome,
+        requester_email: email,
+        requester_phone: tel,
+        department: dep,
+        category: cat,
+        priority: pri,
+        description: desc,
+        pagina: 'login',
+        userAgent: navigator.userAgent,
+        attachment: null
+      };
+
+      const f = cFile.files && cFile.files[0];
+      if (f){
+        if (f.size > MAX_FILE){
+          showErr('Arquivo acima de 5MB. Selecione um arquivo menor.');
+          return;
+        }
+        const b64 = await readFileAsBase64(f);
+        payload.attachment = {
+          fileName: f.name,
+          mimeType: f.type || 'application/octet-stream',
+          base64: b64
+        };
+      }
+
+      setSending(true);
+
+      google.script.run
+        .withSuccessHandler(function(res){
+          setSending(false);
+
+          if(!res || !res.ok){
+            showErr((res && res.msg) ? res.msg : 'Não foi possível abrir o chamado.');
+            return;
+          }
+
+          const proto = res.protocolo ? ` Protocolo: ${res.protocolo}.` : '';
+          showOk('✅ Chamado aberto com sucesso!' + proto);
+
+          cDesc.value = '';
+          cFile.value = '';
+          cFileInfo.style.display = 'none';
+          cFileInfo.textContent = '';
+        })
+        .withFailureHandler(function(err){
+          setSending(false);
+          console.error('[ti_abrirChamado]', err);
+          showErr('Erro ao enviar chamado. Tente novamente.');
+        })
+        .ti_abrirChamado(payload);
+    });
+  </script>
+</body>
+</html>
