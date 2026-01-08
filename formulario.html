@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- jQuery + jQuery Mask -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+
+  <style>
+    body{font-family:Arial, sans-serif;background:#f2f4f7;padding:30px;margin:0}
+    .container{max-width:1100px;margin:auto;background:#fff;padding:30px;border-radius:12px;box-shadow:0 4px 8px rgba(0,0,0,.1)}
+    h2,h3{text-align:center;color:#333;margin-top:0}
+    .section{margin-bottom:30px}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+    label{font-weight:bold;display:block;margin-bottom:5px}
+    input,select,textarea{width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box}
+    .full-width{grid-column:span 2}
+    .btn{background:#0B6E4F;color:#fff;padding:12px 24px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;margin-top:20px}
+    .btn:hover{background:#095b41}
+    .btn-outline{background:#fff;color:#4338ca;border:1px solid #4338ca;padding:10px 18px;border-radius:6px;font-weight:700;cursor:pointer}
+    .btn-outline:hover{background:#eef2ff}
+    #loadingForm{display:none;margin-top:15px;text-align:center;font-weight:bold;color:#0B6E4F}
+    .alert-error{background:#fee2e2;color:#991b1b;border:1px solid #fecaca;padding:12px 14px;border-radius:8px;font-weight:600;line-height:1.45}
+    .helper{display:block;margin-top:4px;font-size:12px}
+    .ok{color:#16a34a}.warn{color:#6b7280}.err{color:#b91c1c}.invalid{border-color:#ef4444!important}
+    .result-actions{margin-top:12px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+    .radio-row{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+    .radio-row label{font-weight:600;margin:0}
+    .radio-row input{width:auto}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    .sig-preview{display:flex;align-items:center;gap:12px;margin-top:8px}
+    .sig-preview img{max-height:70px;border:1px dashed #cbd5e1;border-radius:6px;padding:4px;background:#fafafa}
+    @media (max-width:768px){.form-grid{grid-template-columns:1fr}.full-width{grid-column:span 1}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>RELATÓRIO SOCIAL / REQUERIMENTO DE BENEFÍCIO EVENTUAL</h2>
+
+    <form id="beneficioForm" action="javascript:void(0)" autocomplete="off" novalidate>
+      <!-- VIA DE ENTRADA -->
+      <div class="section">
+        <h3>Via de Entrada</h3>
+        <div class="form-grid">
+          <div class="full-width">
+            <label>VIA DE ENTRADA *</label>
+            <select name="via_entrada" required>
+              <option value="">Selecione</option>
+              <option>CRAS ANGELA MARIA (NOVO HORIZONTE)</option>
+              <option>CRAS DR. FRANKLIN (PARQUE DOS FAROIS)</option>
+              <option>CRAS MARIA JOSÉ (JARDIM)</option>
+              <option>CRAS PROF MARIA LUIZA (MARCOS FREIRE I)</option>
+              <option>CRAS ZILDA ARNS (JOÃO ALVES)</option>
+              <option>CREAS MARCOS FREIRE</option>
+              <option>CREAS LEONEL BRIZOLA (PARQUE DOS FAROIS)</option>
+              <option>CRAM</option>
+              <option>SEDE</option>
+              <option>Outro</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- DEMANDA -->
+      <div class="section">
+        <h3>Demanda</h3>
+        <div class="form-grid">
+          <div>
+            <label>DEMANDA APRESENTADA *</label>
+            <select name="demanda" required>
+              <option value="">Selecione</option>
+              <option>CUIDAR MAIS (CESTA BÁSICA)</option>
+              <option>AUXÍLIO POR MORTE</option>
+              <option>MAIS ACONCHEGO (NATALIDADE)</option>
+              <option>COLCHÃO DE CASAL</option>
+              <option>COLCHÃO DE SOLTEIRO</option>
+              <option>PASSAGEM INTERESTADUAL (VIAGEM)</option>
+              <option>DOCUMENTAÇÃO</option>
+              <option>AUXÍLIO MORADIA</option>
+              <option>Outro</option>
+            </select>
+          </div>
+          <div>
+            <label>DATA DA SOLICITAÇÃO *</label>
+            <input type="date" name="data_solicitacao" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- DADOS DO BENEFICIÁRIO -->
+      <div class="section">
+        <h3>Dados do Beneficiário</h3>
+        <div class="form-grid">
+          <div class="full-width">
+            <label>NOME COMPLETO *</label>
+            <input type="text" name="nomeb" required>
+          </div>
+          <div>
+            <label>DATA DE NASCIMENTO *</label>
+            <input type="text" name="nasc" required placeholder="dd/mm/aaaa">
+          </div>
+          <div>
+            <label>ENDEREÇO *</label>
+            <input type="text" name="endereco" required>
+          </div>
+          <div>
+            <label>BAIRRO *</label>
+            <input type="text" name="bairro" required>
+          </div>
+          <div>
+            <label>PONTO DE REFERÊNCIA</label>
+            <input type="text" name="referencia">
+          </div>
+          <div>
+            <label>TELEFONE *</label>
+            <input type="text" name="telefone" required placeholder="(xx) xxxxx-xxxx)">
+          </div>
+          <div>
+            <label>RG / ORGÃO EMISSOR *</label>
+            <input type="text" name="rg" required>
+          </div>
+          <div>
+            <label>SSP *</label>
+            <input type="text" name="ssp" required>
+          </div>
+          <div>
+            <label>CPF *</label>
+            <input type="text" name="cpf" required placeholder="000.000.000-00">
+            <small id="cpfMsgB" class="helper" aria-live="polite"></small>
+          </div>
+          <div>
+            <label>NIS</label>
+            <input type="text" name="nis" placeholder="(opcional)">
+          </div>
+          <div class="full-width">
+            <label>CRAS DE REFERÊNCIA *</label>
+            <input type="text" name="cras_ref" required>
+          </div>
+          <div>
+            <label>BENEFÍCIO SOCIAL *</label>
+            <select name="tem_beneficio" required>
+              <option value="NÃO">NÃO</option>
+              <option value="SIM">SIM</option>
+            </select>
+          </div>
+          <div>
+            <label>SE SIM, QUAL?</label>
+            <input type="text" name="qual_beneficio">
+          </div>
+          <div>
+            <label>Nº DE MEMBROS NA FAMÍLIA *</label>
+            <input type="number" name="membros" required>
+          </div>
+          <div>
+            <label>RENDA FAMILIAR MENSAL (R$) *</label>
+            <input type="text" name="renda" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- DADOS DO SOLICITANTE -->
+      <div class="section">
+        <h3>Dados do Solicitante</h3>
+        <div class="form-grid">
+          <div class="full-width">
+            <label>NOME COMPLETO *</label>
+            <input type="text" name="nomes" required>
+          </div>
+          <div>
+            <label>TELEFONE *</label>
+            <input type="text" name="telefones" required placeholder="(xx) xxxxx-xxxx)">
+          </div>
+          <div>
+            <label>ENDEREÇO *</label>
+            <input type="text" name="enderecos" required>
+          </div>
+          <div>
+            <label>RG / ORGÃO EMISSOR *</label>
+            <input type="text" name="rgs" required>
+          </div>
+          <div>
+            <label>CPF *</label>
+            <input type="text" name="cpfs" required placeholder="000.000.000-00">
+            <small id="cpfMsgS" class="helper" aria-live="polite"></small>
+          </div>
+          <div>
+            <label>VÍNCULO COM O BENEFICIÁRIO *</label>
+            <input type="text" name="vinculo" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- SITUAÇÃO / OBSERVAÇÕES -->
+      <div class="section">
+        <h3>Situação Familiar / Observações</h3>
+        <div class="form-grid">
+          <div class="full-width">
+            <label>DESCREVA A SITUAÇÃO FAMILIAR *</label>
+            <textarea name="situacao" rows="4" required></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANEXAR DOCUMENTOS (com Anexar para criar FILA sem limite prático) -->
+      <div class="section">
+        <h3>Anexar Documentos</h3>
+        <div class="form-grid">
+          <div class="full-width">
+            <label for="anexos">DOCUMENTOS</label>
+            <input id="anexos" type="file" accept=".pdf,application/pdf,image/jpeg,image/png">
+            <small class="helper">
+              Selecione um ou mais arquivos e informe um nome para identificação (ex.: RG, CPF, Comprovante de Residência). Clique em <b>Anexar</b> para adicionar à lista. Repita esse processo quantas vezes quiser.
+            </small>
+            <div style="display:flex;gap:10px;align-items:center;margin-top:6px">
+              <input id="anexoNomeInput" type="text" placeholder="Nome do documento (ex.: RG)" style="flex:1">
+              <button type="button" class="btn-outline" id="btnAnexarDoc">Anexar</button>
+            </div>
+
+            <div id="anexosInfo" class="helper" style="color:#6b7280;margin-top:6px">Nenhum documento na lista.</div>
+            <div id="anexosLista" class="helper" style="margin-top:6px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PARECER TÉCNICO -->
+      <div class="section">
+        <h3>Parecer Técnico</h3>
+        <div class="form-grid">
+          <div class="full-width">
+            <label>DECISÃO *</label>
+            <div class="radio-row" role="group" aria-label="Parecer técnico">
+              <label><input type="radio" name="parecer_tecnico" value="FAVORÁVEL" required> Favorável</label>
+              <label><input type="radio" name="parecer_tecnico" value="DESFAVORÁVEL" required> Desfavorável</label>
+            </div>
+          </div>
+
+          <div class="full-width">
+            <label>NOME DO TÉCNICO(A) RESPONSÁVEL *</label>
+            <input type="text" name="nome_tecnico" required placeholder="Informe seu nome completo">
+          </div>
+
+          <div>
+            <label>MUNICÍPIO</label>
+            <input type="text" name="municipio_parecer" value="Nossa Senhora do Socorro">
+          </div>
+
+          <div>
+            <label>DATA DO PARECER *</label>
+            <input type="date" name="data_parecer" required>
+          </div>
+
+          <div class="full-width">
+            <label>ASSINATURA DIGITAL (PNG/JPG) — opcional</label>
+            <input id="assinaturaFile" type="file" accept="image/png,image/jpeg">
+            <div class="sig-preview" id="assinaturaPreviewBox" style="display:none">
+              <img id="assinaturaPreview" alt="Prévia da assinatura">
+              <small style="color:#475569">Será inserida na área da assinatura do PDF.</small>
+            </div>
+
+            <input type="hidden" name="assinatura_base64" id="assinaturaBase64">
+            <input type="hidden" name="assinatura_filename" id="assinaturaFileName">
+
+            <input type="text" name="assinatura_carimbo" placeholder="(Opcional — se não anexar imagem, o PDF ficará em branco para assinatura manual)">
+          </div>
+        </div>
+      </div>
+
+      <div class="sr-only" aria-live="polite" id="live"></div>
+      <div style="text-align:right">
+        <button id="btnEnviar" type="submit" class="btn">Enviar Requerimento</button>
+      </div>
+    </form>
+
+    <div id="loadingForm">⏳ Enviando requerimento, aguarde...</div>
+    <div id="resultado" style="margin-top:20px;text-align:center"></div>
+  </div>
+
+  <script>
+    /* ========= Helpers de CPF ========= */
+    function onlyDigits(s){ return String(s||'').replace(/\D/g,''); }
+    function cpfIsValid(cpf){
+      const s = onlyDigits(cpf);
+      if (s.length !== 11) return false;
+      if (/^(\d)\1+$/.test(s)) return false;
+      let sum = 0;
+      for (let i=0;i<9;i++) sum += parseInt(s[i])*(10-i);
+      let d1 = (sum*10)%11; if (d1===10) d1 = 0;
+      if (d1 !== parseInt(s[9])) return false;
+      sum = 0;
+      for (let i=0;i<10;i++) sum += parseInt(s[i])*(11-i);
+      let d2 = (sum*10)%11; if (d2===10) d2 = 0;
+      return d2 === parseInt(s[10]);
+    }
+    function setCpfMsg(input, ok, msg, css){
+      const id = input.getAttribute('data-help-id');
+      const el = document.getElementById(id);
+      if (!el) return;
+      input.classList.toggle('invalid', !ok);
+      el.className = 'helper ' + (css || (ok?'ok':'err'));
+      el.textContent = msg || (ok ? '' : 'CPF inválido.');
+    }
+    function attachCpfLiveValidation(selector, msgId){
+      const el = document.querySelector(selector);
+      if (!el) return;
+      if (el.dataset.cpfLiveAttached === '1') return;
+      el.dataset.cpfLiveAttached = '1';
+      el.setAttribute('data-help-id', msgId);
+      el.addEventListener('input', function(e){
+        const raw = onlyDigits(e.target.value);
+        if (raw.length < 11){ setCpfMsg(e.target, true, '', ''); return; }
+        if (!cpfIsValid(raw)){ setCpfMsg(e.target, false, 'CPF inválido.', 'err'); return; }
+        setCpfMsg(e.target, true, 'CPF válido ✔', 'ok');
+
+        if (typeof google !== 'undefined' && google.script && google.script.run){
+          google.script.run.withSuccessHandler(function(res){
+            if (res && res.exists === true){
+              setCpfMsg(e.target, true, 'CPF válido e encontrado na base ✔', 'ok');
+            } else if (res && res.exists === false){
+              setCpfMsg(e.target, true, 'CPF válido (não encontrado na base)', 'warn');
+            }
+          }).checkCpfExistence(raw);
+        }
+      });
+    }
+
+    /* ========= Upload da assinatura ========= */
+    const MAX_SIG_MB = 2;
+    function handleSignatureFile(file){
+      const previewBox = document.getElementById('assinaturaPreviewBox');
+      const previewImg = document.getElementById('assinaturaPreview');
+      const outB64 = document.getElementById('assinaturaBase64');
+      const outName= document.getElementById('assinaturaFileName');
+
+      if (!file){
+        previewBox.style.display='none';
+        outB64.value='';
+        outName.value='';
+        return;
+      }
+      if (!/image\/(png|jpeg)/i.test(file.type)){
+        alert('Apenas PNG ou JPG.');
+        return;
+      }
+      if (file.size > MAX_SIG_MB*1024*1024){
+        alert('Arquivo muito grande (máx. '+MAX_SIG_MB+' MB).');
+        return;
+      }
+
+      const rd = new FileReader();
+      rd.onload = () => {
+        const dataUrl = String(rd.result || '');
+        previewImg.src = dataUrl;
+        previewBox.style.display = 'flex';
+        outB64.value = dataUrl;
+        outName.value = file.name || 'assinatura.png';
+      };
+      rd.readAsDataURL(file);
+    }
+
+    /* ========= FILA DE ANEXOS (ilimitado) ========= */
+    const anexosQueue = []; // {nome,nomeDocumento,mimeType,dataUrl}
+    const inputFile = document.getElementById('anexos');
+    const nomeInput = document.getElementById('anexoNomeInput');
+    const btnAnexar = document.getElementById('btnAnexarDoc');
+    const infoEl    = document.getElementById('anexosInfo');
+    const listaEl   = document.getElementById('anexosLista');
+
+    function bytesToMB(n){ return Math.round((n/(1024*1024))*10)/10; }
+
+    function renderQueue(){
+      if (!anexosQueue.length){
+        infoEl.textContent = 'Nenhum documento na lista.';
+        listaEl.innerHTML = '';
+        return;
+      }
+      let totalBytes = 0;
+      anexosQueue.forEach(a => totalBytes += (a.size || 0));
+
+      infoEl.textContent = anexosQueue.length+' documento(s) na lista, ~'+bytesToMB(totalBytes)+' MB.';
+      listaEl.innerHTML = anexosQueue.map((a,i)=>`
+        <div style="display:flex;align-items:center;gap:8px;margin:4px 0;">
+          <span style="font-weight:600">${a.nomeDocumento}</span>
+          <span style="color:#6b7280">(${a.nome})</span>
+          <button type="button" class="btn-outline" style="padding:4px 8px" onclick="removerAnexo(${i})">Remover</button>
+        </div>
+      `).join('');
+    }
+
+    async function addSelectedFilesToQueue(){
+      const files = Array.from(inputFile.files || []);
+      const label = (nomeInput.value || '').trim();
+      if (!files.length){
+        alert('Selecione pelo menos um arquivo.');
+        return;
+      }
+      if (!label){
+        alert('Informe um nome para o(s) documento(s).');
+        nomeInput.focus();
+        return;
+      }
+      for (const file of files){
+        // validação leve
+        const tipo = (file.type || '').toLowerCase();
+        const nome = file.name || 'arquivo';
+        if (!tipo && !/\.(pdf|jpe?g|png)$/i.test(nome)){
+          alert('Tipo não reconhecido em "'+nome+'". Permitidos: PDF, JPG, PNG.');
+          return;
+        }
+        if (tipo && !/^application\/pdf$|^image\/(jpeg|png)$/.test(tipo)){
+          alert('Arquivo "'+nome+'" não é PDF, JPG ou PNG.');
+          return;
+        }
+      }
+      // leitura e push
+      for (const file of files){
+        const dataUrl = await new Promise((resolve,reject)=>{
+          const rd = new FileReader();
+          rd.onload = ()=> resolve(String(rd.result||''));
+          rd.onerror = ()=> reject(rd.error||new Error('Erro ao ler arquivo '+file.name));
+          rd.readAsDataURL(file);
+        });
+        anexosQueue.push({
+          nome: file.name || 'arquivo',
+          nomeDocumento: label,
+          mimeType: file.type || '',
+          dataUrl,
+          size: file.size || 0
+        });
+      }
+      // limpa seleção
+      inputFile.value = '';
+      nomeInput.value = '';
+      renderQueue();
+    }
+
+    function removerAnexo(idx){
+      anexosQueue.splice(idx,1);
+      renderQueue();
+    }
+
+    // Expor removerAnexo no escopo global
+    window.removerAnexo = removerAnexo;
+
+    btnAnexar.addEventListener('click', addSelectedFilesToQueue);
+
+    /* ========= Modal de confirmação ========= */
+    function openConfirmModal(summaryPairs){
+      const bg = document.createElement('div');
+      bg.id = 'confirmBackdrop';
+      bg.style.position='fixed'; bg.style.inset='0'; bg.style.background='rgba(15,23,42,.55)';
+      bg.style.display='flex'; bg.style.alignItems='center'; bg.style.justifyContent='center'; bg.style.zIndex='9999';
+      bg.innerHTML = `
+        <div style="width:min(720px,92vw);background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);padding:20px">
+          <h4 style="margin:0 0 8px;font-size:18px;color:#111827">Confirmar envio</h4>
+          <p style="margin:0 0 14px;color:#374151;font-size:14px">Confira os principais dados abaixo e clique em <b>Confirmar</b>.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;max-height:45vh;overflow:auto;margin:10px 0 18px">
+            ${summaryPairs.map(([l,v])=>`<div><b style="display:block;font-size:12px;color:#6b7280;margin-bottom:4px">${l}</b><div>${v||'—'}</div></div>`).join('')}
+          </div>
+          <div style="display:flex;gap:10px;justify-content:flex-end">
+            <button type="button" class="btn-outline" id="btnVoltarEditar">Voltar e editar</button>
+            <button type="button" class="btn" id="btnConfirmarEnvio">Confirmar envio</button>
+          </div>
+        </div>`;
+      document.body.appendChild(bg);
+      document.getElementById('btnVoltarEditar').onclick = closeConfirmModal;
+      document.getElementById('btnConfirmarEnvio').onclick = doSubmit;
+    }
+    function closeConfirmModal(){
+      const bd=document.getElementById('confirmBackdrop');
+      if(bd) bd.remove();
+    }
+
+    function buildSummary(){
+      const f = document.getElementById('beneficioForm');
+      const v = (name)=> (f.elements[name]?.value || '').toString().trim();
+      const parecer = [...(f.elements['parecer_tecnico']||[])].find(r=>r.checked)?.value || '';
+      const temSig  = !!document.getElementById('assinaturaBase64').value;
+      const anexosQtd = anexosQueue.length;
+
+      return [
+        ['Via de entrada', v('via_entrada')],
+        ['Demanda', v('demanda')],
+        ['Data da solicitação', v('data_solicitacao')],
+        ['Nome (beneficiário)', v('nomeb')],
+        ['CPF (beneficiário)', v('cpf')],
+        ['Telefone (beneficiário)', v('telefone')],
+        ['CRAS de referência', v('cras_ref')],
+        ['Nome (solicitante)', v('nomes')],
+        ['CPF (solicitante)', v('cpfs')],
+        ['Vínculo', v('vinculo')],
+        ['Endereço', v('endereco')],
+        ['Bairro', v('bairro')],
+        ['Situação familiar / observações', v('situacao')],
+        ['Documentos anexados (fila)', anexosQtd ? (anexosQtd + ' arquivo(s)') : 'Nenhum'],
+        ['Parecer técnico', parecer],
+        ['Técnico responsável', v('nome_tecnico')],
+        ['Data do parecer', v('data_parecer')],
+        ['Assinatura digital', temSig ? 'Sim (anexada)' : 'Não (ficará em branco no PDF)']
+      ];
+    }
+
+    /* ========= Envio ========= */
+    let _cachedFormData = null;
+
+    async function handleSubmit(e){
+      e.preventDefault();
+      const cpfB = document.querySelector('input[name="cpf"]');
+      const cpfS = document.querySelector('input[name="cpfs"]');
+      if (!cpfIsValid(cpfB.value)){
+        setCpfMsg(cpfB, false, 'CPF inválido.', 'err');
+        cpfB.focus();
+        return;
+      }
+      if (!cpfIsValid(cpfS.value)){
+        setCpfMsg(cpfS, false, 'CPF inválido.', 'err');
+        cpfS.focus();
+        return;
+      }
+
+      const formEl = e.target;
+      const data = {};
+      new FormData(formEl).forEach((value, key) => { data[key] = value; });
+
+      // anexos = fila acumulada
+      data.anexos = anexosQueue.slice();
+
+      _cachedFormData = data;
+      openConfirmModal(buildSummary());
+    }
+
+    function doSubmit(){
+      if (!_cachedFormData) return;
+      closeConfirmModal();
+
+      const btn = document.getElementById('btnEnviar');
+      const loader = document.getElementById('loadingForm');
+      btn.disabled = true;
+      loader.style.display = 'block';
+
+      google.script.run
+        .withSuccessHandler(function(resposta){
+          btn.disabled = false;
+          loader.style.display = 'none';
+          const resultadoDiv = document.getElementById('resultado');
+
+          if (resposta.sucesso) {
+            resultadoDiv.innerHTML = `
+              <p style="color:#16a34a;font-weight:bold">${resposta.mensagem}</p>
+              <div class="result-actions">
+                <a href="${resposta.link}" target="_blank" class="btn">📥 Baixar PDF</a>
+                <button type="button" class="btn-outline" onclick="novoCadastro()">➕ Concluído (Novo Cadastro)</button>
+              </div>`;
+          } else {
+            let extra = '';
+            if (resposta.ultima_data || resposta.proxima_data) {
+              extra = `
+                <div style="margin-top:8px;font-weight:600">
+                  - Último registro: <b>${resposta.ultima_data || '-'}</b><br>
+                  - Novo pedido permitido: <b>${resposta.proxima_data || '-'}</b>
+                </div>`;
+            }
+            resultadoDiv.innerHTML = `
+              <div class="alert-error">${resposta.mensagem}${extra}</div>
+              <div class="result-actions">
+                <button type="button" class="btn-outline" onclick="novoCadastro()">➕ Concluído (Novo Cadastro)</button>
+              </div>`;
+          }
+          document.getElementById('live').textContent = 'Envio concluído.';
+        })
+        .withFailureHandler(function(err){
+          btn.disabled = false;
+          loader.style.display = 'none';
+          alert('Erro ao enviar: ' + (err && err.message ? err.message : err));
+        })
+        .salvarFormulario(_cachedFormData);
+    }
+
+    /* ========= Novo cadastro ========= */
+    function aplicarMascaras(){
+      $('input[name="cpf"], input[name="cpfs"]').unmask().mask('000.000.000-00');
+      $('input[name="telefone"], input[name="telefones"]').unmask().mask('(00) 00000-0000');
+      $('input[name="nasc"]').unmask().mask('00/00/0000');
+    }
+    function limparMensagensCPF(){
+      ['cpfMsgB','cpfMsgS'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = '';
+      });
+      document.querySelectorAll('.invalid').forEach(el=>el.classList.remove('invalid'));
+    }
+    function novoCadastro(){
+      const f = document.getElementById('beneficioForm');
+      f.reset();
+      document.getElementById('resultado').innerHTML = '';
+      limparMensagensCPF();
+      document.getElementById('assinaturaPreviewBox').style.display='none';
+      document.getElementById('assinaturaBase64').value='';
+      document.getElementById('assinaturaFileName').value='';
+
+      // limpa fila de anexos
+      anexosQueue.length = 0;
+      renderQueue();
+      inputFile.value = '';
+      nomeInput.value  = '';
+
+      _cachedFormData = null;
+
+      const btn = document.getElementById('btnEnviar');
+      btn.disabled = false;
+      aplicarMascaras();
+      attachCpfLiveValidation('input[name="cpf"]','cpfMsgB');
+      attachCpfLiveValidation('input[name="cpfs"]','cpfMsgS');
+      setDefaultParecerDate();
+      window.scrollTo({top: 0, behavior: 'smooth'});
+      document.getElementById('live').textContent = 'Formulário pronto para novo cadastro.';
+    }
+
+    /* ========= Boot ========= */
+    function setDefaultParecerDate(){
+      const el = document.querySelector('input[name="data_parecer"]');
+      if (!el) return;
+      if (!el.value){
+        const d = new Date();
+        const pad = n=>String(n).padStart(2,'0');
+        el.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      }
+    }
+
+    function boot(){
+      aplicarMascaras();
+      attachCpfLiveValidation('input[name="cpf"]','cpfMsgB');
+      attachCpfLiveValidation('input[name="cpfs"]','cpfMsgS');
+      setDefaultParecerDate();
+
+      const form = document.getElementById('beneficioForm');
+      form.addEventListener('submit', handleSubmit);
+
+      const sigInput = document.getElementById('assinaturaFile');
+      if (sigInput) sigInput.addEventListener('change', e => handleSignatureFile(e.target.files?.[0]));
+    }
+    document.addEventListener('DOMContentLoaded', boot);
+  </script>
+</body>
+</html>
