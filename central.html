@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Central de Aprovação de Benefícios</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    html, body { height: 100%; }
+    [x-cloak]{ display:none !important; }
+
+    .card{ background:#fff; border:1px solid rgba(2,6,23,.06); border-radius:16px; box-shadow:0 10px 30px rgba(2,6,23,.06); }
+    .btn{ display:inline-flex; align-items:center; gap:.5rem; padding:.5rem .9rem; border-radius:.8rem; border:1px solid rgba(2,6,23,.08); background:#fff; }
+    .btn:hover{ background:#f8fafc; }
+    .btn-primary{ background:#0ea5e9; color:#fff; border-color:#0ea5e9; }
+    .btn-primary:hover{ filter:brightness(.95); }
+    .btn-muted{ background:#111827; color:#fff; border-color:#111827; }
+    .btn-muted:hover{ filter:brightness(.95); }
+
+    .chip{ border:1px solid transparent }
+    .chip.active{ box-shadow:0 0 0 2px rgba(59,130,246,.2) inset; border-color:#3b82f6 }
+
+    .toast-wrap{ position:fixed; top:16px; right:16px; z-index:9999; display:flex; flex-direction:column; gap:10px; }
+    .toast{ min-width:280px; max-width:360px; padding:12px 14px; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,.12);
+      display:flex; align-items:flex-start; gap:10px; color:#0f172a; background:#fff; border-left:6px solid; animation:slideIn .25s ease-out; }
+    .toast.success{ border-color:#10b981 } .toast.error{ border-color:#ef4444 }
+    .toast .title{ font-weight:700; font-size:14px } .toast .msg{ font-size:13px; color:#334155 }
+    @keyframes slideIn{ from{ transform:translateY(-10px); opacity:0 } to{ transform:translateY(0); opacity:1 } }
+
+    .table{ width:100%; border-collapse:separate; border-spacing:0 6px; }
+    .table thead th{ font-weight:600; font-size:.8rem; color:#334155; padding:8px 10px; }
+    .table tbody td{ background:#fff; padding:10px 12px; font-size:.9rem; color:#0f172a; }
+    .table tbody tr td:first-child{ border-top-left-radius:10px; border-bottom-left-radius:10px; }
+    .table tbody tr td:last-child{ border-top-right-radius:10px; border-bottom-right-radius:10px; }
+
+    .badge{ display:inline-flex; align-items:center; gap:.35rem; padding:.2rem .55rem; border-radius:.6rem; font-size:.75rem; font-weight:600; }
+    .badge-pendente{ background:#fef3c7; color:#92400e; }
+    .badge-aprovado{ background:#dcfce7; color:#166534; }
+    .badge-recusado{ background:#fee2e2; color:#991b1b; }
+    .badge-entregue{ background:#e0f2fe; color:#075985; }
+    .badge-default{ background:#f1f5f9; color:#334155; }
+
+    .btn-loading{ position:relative; pointer-events:none; opacity:.85 }
+    .btn-loading::after{ content:""; position:absolute; right:10px; top:50%; width:14px; height:14px; margin-top:-7px;
+      border:2px solid rgba(255,255,255,.7); border-top-color:transparent; border-radius:50%; animation:spin .7s linear infinite; }
+    @keyframes spin{ to{ transform:rotate(360deg) } }
+
+    /* Drawer */
+    .scrim{ position:fixed; inset:0; background:rgba(15,23,42,.35); z-index:9998; opacity:0; pointer-events:none; transition:.2s; }
+    .scrim.show{ opacity:1; pointer-events:auto; }
+    .drawer{ position:fixed; top:0; right:-760px; width:760px; max-width:100%; height:100%; background:#fff; z-index:9999;
+      box-shadow:-10px 0 30px rgba(2,6,23,.15); transition:right .25s ease; display:flex; flex-direction:column; }
+    .drawer.show{ right:0; }
+    .kv{ display:grid; grid-template-columns: 220px 1fr; gap:.35rem .75rem; }
+    .kv .k{ color:#475569; font-size:.85rem; }
+    .kv .v{ color:#0f172a; font-weight:600; font-size:.95rem; word-break:break-word; }
+    .pill{ display:inline-flex; align-items:center; gap:.4rem; background:#f1f5f9; border:1px solid #e5e7eb; padding:.25rem .55rem; border-radius:9999px; font-size:.75rem; }
+    .link{ color:#2563eb; text-decoration:underline; }
+
+    /* Imagem da assinatura digital no drawer */
+    .sig-img{
+      max-height:80px;
+      border-radius:0.5rem;
+      border:1px dashed #cbd5e1;
+      padding:4px;
+      background:#f8fafc;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-sky-100 min-h-screen">
+
+  <!-- TOP -->
+  <header class="sticky top-0 z-50 bg-white/90 backdrop-blur shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-3 flex items-center justify-end">
+      <button id="btnSair" class="btn-muted text-sm">Sair</button>
+    </div>
+  </header>
+
+  <div id="toastWrap" class="toast-wrap"></div>
+
+  <div class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6">
+
+    <div class="card p-5 mb-6">
+      <h1 class="text-2xl md:text-3xl font-bold text-gray-800">📌 Central de Aprovação de Benefícios</h1>
+      <p class="text-gray-600 text-sm md:text-base mt-1">Clique em <b>👁️ Ver</b> para abrir os <b>detalhes completos</b> do cadastro. Ações rápidas continuam nos botões.</p>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card p-5 mb-6">
+      <h2 class="text-lg font-semibold text-gray-800 mb-3">Filtros</h2>
+      <div class="grid grid-cols-1 md:grid-cols-7 gap-3">
+        <div class="md:col-span-2">
+          <label class="block text-xs font-medium text-gray-700 mb-1">CPF</label>
+          <input type="text" id="cpfBusca" placeholder="000.000.000-00" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">Data Inicial</label>
+          <input type="date" id="dataInicio" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">Data Final</label>
+          <input type="date" id="dataFim" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-xs font-medium text-gray-700 mb-1">Benefício</label>
+          <select id="beneficioFiltro" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">Unidade</label>
+          <select id="unidadeFiltro" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Todas</option>
+          </select>
+        </div>
+        <div class="flex items-end gap-2">
+          <button id="btnBuscar" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm rounded-md font-medium">🔎 Buscar</button>
+        </div>
+      </div>
+
+      <div class="mt-4 flex flex-wrap items-center gap-2">
+        <span class="text-xs font-medium text-gray-600 mr-2">Status:</span>
+        <button class="chip px-3 py-1 rounded-full text-xs bg-gray-100 hover:bg-gray-200" data-status=""          onclick="setStatusFiltro(this,'')">Todos</button>
+        <button class="chip px-3 py-1 rounded-full text-xs text-green-800 bg-green-100 hover:bg-green-200"   data-status="APROVADO" onclick="setStatusFiltro(this,'APROVADO')">Aprovado</button>
+        <button class="chip px-3 py-1 rounded-full text-xs text-yellow-800 bg-yellow-100 hover:bg-yellow-200" data-status="PENDENTE" onclick="setStatusFiltro(this,'PENDENTE')">Pendente</button>
+        <button class="chip px-3 py-1 rounded-full text-xs text-red-800 bg-red-100 hover:bg-red-200"          data-status="RECUSADO" onclick="setStatusFiltro(this,'RECUSADO')">Recusado</button>
+        <button class="chip px-3 py-1 rounded-full text-xs text-blue-800 bg-blue-100 hover:bg-blue-200"       data-status="ENTREGUE" onclick="setStatusFiltro(this,'ENTREGUE')">Entregue</button>
+
+        <div class="ml-auto flex items-center gap-2">
+          <label for="ordenarPor" class="text-xs text-gray-600">Ordenar por:</label>
+          <select id="ordenarPor" class="px-3 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="data_desc">Data (novo → antigo)</option>
+            <option value="data_asc">Data (antigo → novo)</option>
+            <option value="nome_asc">Nome (A → Z)</option>
+            <option value="nome_desc">Nome (Z → A)</option>
+          </select>
+
+          <button onclick="aplicarFiltrosFront()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-md text-xs font-medium">Aplicar</button>
+          <button onclick="limparFiltrosFront()" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded-md text-xs font-medium">Limpar</button>
+          <button onclick="mostrarTodos()" class="bg-gray-700 hover:bg-gray-800 text-white px-3 py-1.5 rounded-md text-xs font-medium">📋 Mostrar Todos</button>
+        </div>
+      </div>
+
+      <div id="loading" class="hidden mt-3 text-blue-700 font-semibold text-sm">🔄 Carregando registros...</div>
+    </div>
+
+    <!-- Totais -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
+      <div class="card p-4"><div class="flex items-center">
+        <div class="bg-blue-100 p-2 rounded-full"><svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
+        <div class="ml-3"><p class="text-xs font-medium text-gray-600">Total</p><p id="totalCount" class="text-2xl font-bold text-gray-900">0</p></div>
+      </div></div>
+      <div class="card p-4"><div class="flex items-center">
+        <div class="bg-green-100 p-2 rounded-full"><svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></div>
+        <div class="ml-3"><p class="text-xs font-medium text-gray-600">Aprovados</p><p id="aprovadasCount" class="text-2xl font-bold text-green-600">0</p></div>
+      </div></div>
+      <div class="card p-4"><div class="flex items-center">
+        <div class="bg-yellow-100 p-2 rounded-full"><svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+        <div class="ml-3"><p class="text-xs font-medium text-gray-600">Pendentes</p><p id="pendentesCount" class="text-2xl font-bold text-yellow-600">0</p></div>
+      </div></div>
+      <div class="card p-4"><div class="flex items-center">
+        <div class="bg-red-100 p-2 rounded-full"><svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></div>
+        <div class="ml-3"><p class="text-xs font-medium text-gray-600">Recusados</p><p id="recusadasCount" class="text-2xl font-bold text-red-600">0</p></div>
+      </div></div>
+    </div>
+    <div class="flex items-center justify-end mb-6">
+      <button class="btn" onclick="copiarTotais()">Copiar Totais</button>
+    </div>
+
+    <!-- Tabela -->
+    <div class="card overflow-hidden">
+      <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-gray-800">Solicitações</h2>
+        <div class="flex items-center gap-2">
+          <span id="lastUpdated" class="text-xs text-gray-500"></span>
+          <button class="btn" onclick="copiarTabela()">Copiar CSV</button>
+          <button class="btn" onclick="baixarCSV()">Baixar CSV</button>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 table">
+          <thead class="bg-gray-50"><tr>
+            <th class="text-left">Data</th>
+            <th class="text-left">Unidade</th>
+            <th class="text-left">Nome</th>
+            <th class="text-left">CPF</th>
+            <th class="text-left">Demanda</th>
+            <th class="text-left">Status</th>
+            <th class="text-left">Ações</th>
+          </tr></thead>
+          <tbody id="tbody" class="bg-white divide-y divide-gray-200"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drawer de Detalhes -->
+  <div id="scrim" class="scrim" onclick="fecharDetalhes()"></div>
+  <aside id="drawer" class="drawer" aria-modal="true" role="dialog">
+    <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+      <div>
+        <h3 class="text-xl font-bold text-gray-900" id="detTitulo">Detalhes</h3>
+        <p class="text-xs text-gray-500" id="detSub">—</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btnDetBaixar" class="btn">📄 Baixar PDF</button>
+        <button class="btn" onclick="copiarDetalhes()">Copiar</button>
+        <button class="btn-muted" onclick="fecharDetalhes()">Fechar</button>
+      </div>
+    </div>
+
+    <div id="detLoading" class="px-4 py-6 hidden">
+      <div class="pill">Carregando…</div>
+    </div>
+
+    <div id="detWrap" class="p-4 overflow-y-auto">
+      <div class="mb-4 flex flex-wrap items-center gap-2" id="detChips"></div>
+      <div id="detGrid" class="kv"></div>
+
+      <div class="border-t border-gray-200 mt-6 pt-4">
+        <div class="flex flex-wrap gap-2">
+          <button class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-xs font-semibold"  id="detBtnAprovar">Aprovar</button>
+          <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-xs font-semibold"   id="detBtnEntregar">Entregue</button>
+          <button class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded text-xs font-semibold" id="detBtnPendente">Pendente</button>
+          <button class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded text-xs font-semibold"      id="detBtnRecusar">Recusar</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    const SAFE_GOOGLE = (typeof google !== 'undefined') && google.script && google.script.run;
+
+    (function(){
+      const btn = document.getElementById('btnSair');
+      if (!btn) return;
+      btn.addEventListener('click', function(e){
+        e.preventDefault();
+        if (SAFE_GOOGLE){
+          google.script.run
+            .withSuccessHandler(html => { document.open(); document.write(html); document.close(); })
+            .renderView('login');
+        } else {
+          const qs = new URLSearchParams(location.search);
+          qs.set('view','login'); location.href = '?' + qs.toString();
+        }
+      });
+    })();
+
+    let cacheRegistros = [], viewRegistros = [];
+    const filtros = { unidade:'', status:'', ordenar:'data_desc', beneficio:'' };
+
+    function showToast(type, title, msg){
+      const wrap = document.getElementById('toastWrap');
+      const div = document.createElement('div');
+      div.className = `toast ${type}`;
+      div.innerHTML = `<div><div class="title">${title||''}</div><div class="msg">${msg||''}</div></div>`;
+      wrap.appendChild(div);
+      setTimeout(()=> div.remove(), 4000);
+    }
+    function setLastUpdated(){ document.getElementById("lastUpdated").textContent = "Atualizado em " + new Date().toLocaleString("pt-BR"); }
+
+    function badgeStatus(statusRaw) {
+      const s = (statusRaw || "").toString().trim().toUpperCase();
+      const map = {APROVADO:'badge-aprovado',PENDENTE:'badge-pendente',RECUSADO:'badge-recusado',ENTREGUE:'badge-entregue'};
+      const cls = map[s] || 'badge-default';
+      const label = s ? (s.charAt(0) + s.slice(1).toLowerCase()) : '—';
+      return `<span class="badge ${cls}">${label}</span>`;
+    }
+    function fmtData(d){
+      if(!d) return "";
+      if(/^\d{4}-\d{2}-\d{2}$/.test(d)) return new Date(d+"T00:00:00").toLocaleDateString("pt-BR");
+      if(/^\d{2}\/\d{2}\/\d{4}$/.test(d)) return d;
+      const nd=new Date(d); return isNaN(nd)? (d||""): nd.toLocaleDateString("pt-BR");
+    }
+    function fmtCPF(c){
+      if(!c) return "";
+      const d=c.toString().replace(/\D/g,"");
+      return d.length===11 ? d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,"$1.$2.$3-$4") : c;
+    }
+
+    function parseDataSort(v){
+      if (!v) return 0;
+      const m = String(v).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (m) return new Date(+m[3], +m[2]-1, +m[1]).getTime();
+      const d = new Date(v); return isNaN(d)? 0 : d.getTime();
+    }
+
+    function renderTabela(regs){
+      const tbody = document.getElementById("tbody");
+      tbody.innerHTML = "";
+      if (regs.length === 0) {
+        tbody.innerHTML = `<tr><td class="px-3 py-3 text-center text-sm text-gray-500" colspan="7">Nenhum registro encontrado</td></tr>`;
+        atualizarEstatisticas([]); setLastUpdated(); return;
+      }
+      regs.forEach(reg=>{
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-gray-50";
+        tr.innerHTML = `
+          <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-900">${fmtData(reg.data)}</td>
+          <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-900">${reg.unidade||""}</td>
+          <td class="px-3 py-2 whitespace-nowrap text-xs text-blue-700 underline cursor-pointer" onclick="abrirDetalhes(${reg.linha})">${reg.nome||""}</td>
+          <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-900">${fmtCPF(reg.cpf||"")}</td>
+          <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-900">${reg.demanda||""}</td>
+          <td class="px-3 py-2 whitespace-nowrap">${badgeStatus(reg.status)}</td>
+          <td class="px-3 py-2 whitespace-nowrap text-xs">
+            <div class="flex flex-wrap gap-2">
+              <button class="px-2 py-1 rounded text-xs font-medium bg-slate-100" onclick="abrirDetalhes(${reg.linha})">👁️ Ver</button>
+              <button class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-medium"  onclick="atualizar(this, ${reg.linha}, 'APROVADO')">Aprovar</button>
+              <button class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-medium"   onclick="atualizar(this, ${reg.linha}, 'ENTREGUE')">Entregue</button>
+              <button class="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded text-xs font-medium"onclick="atualizar(this, ${reg.linha}, 'PENDENTE')">Pendente</button>
+              <button class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs font-medium"    onclick="atualizar(this, ${reg.linha}, 'RECUSADO')">Recusar</button>
+              <button class="bg-purple-600 hover:bg-purple-700 text-white px-2 py-1 rounded text-xs font-medium" onclick="baixarPDFLinha(this, ${reg.linha})">📄 Baixar</button>
+            </div>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+      atualizarEstatisticas(regs);
+      setLastUpdated();
+    }
+
+    function atualizarEstatisticas(regs){
+      const arr = regs || [];
+      const total = arr.length;
+      const ap = arr.filter(r => (r.status||'').toUpperCase()==='APROVADO').length;
+      const pe = arr.filter(r => (r.status||'').toUpperCase()==='PENDENTE').length;
+      const re = arr.filter(r => (r.status||'').toUpperCase()==='RECUSADO').length;
+      document.getElementById('totalCount').textContent = total;
+      document.getElementById('aprovadasCount').textContent = ap;
+      document.getElementById('pendentesCount').textContent = pe;
+      document.getElementById('recusadasCount').textContent = re;
+    }
+
+    function setStatusFiltro(btn, status){
+      filtros.status = (status||'').toUpperCase();
+      document.querySelectorAll('[data-status]').forEach(el=>{
+        el.classList.toggle('active', (el.getAttribute('data-status')||'')===filtros.status);
+      });
+      aplicarFiltrosFront();
+    }
+
+    function ordenarLista(list){
+      const modo = filtros.ordenar || 'data_desc';
+      const byNome = (a,b) => a.nome.localeCompare(b.nome, 'pt-BR', {sensitivity:'base'});
+      const byData = (a,b) => parseDataSort(a.data) - parseDataSort(b.data);
+      let arr = list.slice();
+      if (modo === 'data_desc') arr.sort((a,b)=> byData(b,a));
+      else if (modo === 'data_asc') arr.sort(byData);
+      else if (modo === 'nome_asc') arr.sort(byNome);
+      else if (modo === 'nome_desc') arr.sort((a,b)=> byNome(b,a));
+      return arr;
+    }
+
+    function aplicarFiltrosFront(){
+      const unidadeSel = document.getElementById('unidadeFiltro').value || '';
+      const benSel = document.getElementById('beneficioFiltro').value || '';
+      filtros.unidade = unidadeSel;
+      filtros.beneficio = benSel;
+      filtros.ordenar = document.getElementById('ordenarPor').value || 'data_desc';
+
+      const base = cacheRegistros.filter(r=>{
+        if (filtros.unidade && r.unidade !== filtros.unidade) return false;
+        if (filtros.beneficio && r.demanda !== filtros.beneficio) return false;
+        if (filtros.status && (r.status||'').toUpperCase() !== filtros.status) return false;
+        return true;
+      });
+      viewRegistros = ordenarLista(base);
+      renderTabela(viewRegistros);
+    }
+
+    function limparFiltrosFront(){
+      document.getElementById('unidadeFiltro').value = '';
+      document.getElementById('beneficioFiltro').value = '';
+      setStatusFiltro(null,'');
+      document.getElementById("cpfBusca").value = "";
+      document.getElementById("dataInicio").value = "";
+      document.getElementById("dataFim").value = "";
+      document.getElementById("ordenarPor").value = "data_desc";
+      aplicarFiltrosFront();
+    }
+
+    function buscar(){
+      const cpf  = document.getElementById("cpfBusca").value.trim();
+      const dIni = document.getElementById("dataInicio").value;
+      const dFim = document.getElementById("dataFim").value;
+      const uni  = document.getElementById("unidadeFiltro").value || '';
+      const ben  = document.getElementById("beneficioFiltro").value || '';
+      document.getElementById("loading").classList.remove("hidden");
+
+      if (SAFE_GOOGLE) {
+        google.script.run
+          .withSuccessHandler(dados=>{
+            document.getElementById("loading").classList.add("hidden");
+            cacheRegistros = (dados && dados.registros) ? dados.registros : [];
+            popularBeneficios();
+            aplicarFiltrosFront();
+          })
+          .withFailureHandler(err=>{
+            document.getElementById("loading").classList.add("hidden");
+            showToast('error','Erro na busca', String(err && err.message ? err.message : err));
+          })
+          .buscarBeneficios(cpf, dIni, dFim, ben, uni);
+      } else {
+        document.getElementById("loading").classList.add("hidden");
+        cacheRegistros = [];
+        popularBeneficios();
+        aplicarFiltrosFront();
+      }
+    }
+
+    function mostrarTodos(){
+      document.getElementById("cpfBusca").value = "";
+      document.getElementById("dataInicio").value = "";
+      document.getElementById("dataFim").value = "";
+      document.getElementById("loading").classList.remove("hidden");
+      if (SAFE_GOOGLE) {
+        google.script.run
+          .withSuccessHandler(dados=>{
+            document.getElementById("loading").classList.add("hidden");
+            cacheRegistros = (dados && dados.registros) ? dados.registros : [];
+            popularBeneficios();
+            aplicarFiltrosFront();
+          })
+          .withFailureHandler(err=>{
+            document.getElementById("loading").classList.add("hidden");
+            showToast('error','Erro ao carregar', String(err && err.message ? err.message : err));
+          })
+          .buscarBeneficios("", "", "", "", "");
+      } else {
+        document.getElementById("loading").classList.add("hidden");
+        cacheRegistros = [];
+        popularBeneficios();
+        aplicarFiltrosFront();
+      }
+    }
+
+    function atualizar(btn, linha, status){
+      if (!SAFE_GOOGLE) return;
+      const orig = btn.textContent;
+      btn.classList.add('btn-loading'); btn.textContent='Salvando…'; btn.disabled = true;
+      google.script.run
+        .withSuccessHandler(()=>{
+          btn.classList.remove('btn-loading'); btn.disabled=false; btn.textContent=orig;
+          showToast('success','Status atualizado', `Linha ${linha} → ${status}`); buscar();
+        })
+        .withFailureHandler(err=>{
+          btn.classList.remove('btn-loading'); btn.disabled=false; btn.textContent=orig;
+          showToast('error','Erro ao atualizar', String(err && err.message ? err.message : err));
+        })
+        .atualizarStatus(linha, status);
+    }
+
+    function baixarPDFLinha(btn, linha){
+      if (!SAFE_GOOGLE) return;
+      const orig = btn.textContent;
+      btn.classList.add('btn-loading'); btn.textContent='Gerando…'; btn.disabled = true;
+      google.script.run
+        .withSuccessHandler(res=>{
+          btn.classList.remove('btn-loading'); btn.disabled=false; btn.textContent=orig;
+          if (res && res.link){
+            showToast('success','PDF pronto','Abrindo em nova guia…');
+            window.open(res.link, '_blank');
+            buscar();
+          } else {
+            showToast('error','Falha ao gerar PDF','Tente novamente.');
+          }
+        })
+        .withFailureHandler(err=>{
+          btn.classList.remove('btn-loading'); btn.disabled=false; btn.textContent=orig;
+          showToast('error','Erro ao gerar PDF', String(err));
+        })
+        .gerarPdfDeRegistro(linha);
+    }
+
+    function popularUnidades(){
+      if (SAFE_GOOGLE){
+        google.script.run.withSuccessHandler(arr=>{
+          const sel = document.getElementById('unidadeFiltro');
+          sel.innerHTML = `<option value="">Todas</option>` + (arr||[]).map(u=>`<option value="${u}">${u}</option>`).join('');
+          aplicarFiltrosFront();
+        }).listarUnidadesDashboard();
+      }
+    }
+
+    function popularBeneficios(){
+      const sel = document.getElementById('beneficioFiltro');
+      if (!sel) return;
+      const lista = Array.from(new Set((cacheRegistros||[]).map(r => r.demanda).filter(Boolean)))
+                      .sort((a,b)=>a.localeCompare(b,'pt-BR',{sensitivity:'base'}));
+      sel.innerHTML = `<option value="">Todos</option>` + lista.map(v=>`<option value="${v}">${v}</option>`).join('');
+    }
+
+    async function copiarTotais(){
+      const linhas = [
+        `Total: ${document.getElementById('totalCount').textContent}`,
+        `Aprovados: ${document.getElementById('aprovadasCount').textContent}`,
+        `Pendentes: ${document.getElementById('pendentesCount').textContent}`,
+        `Recusados: ${document.getElementById('recusadasCount').textContent}`
+      ].join('\n');
+      try{
+        await navigator.clipboard.writeText(linhas);
+        showToast('success','Copiado!','Totais enviados para sua área de transferência.');
+      }catch(_){
+        showToast('error','Falha ao copiar','Tente novamente.');
+      }
+    }
+
+function gerarCSV(regs){
+  const linhas = [['Data','Unidade','Nome','CPF','Demanda','Status']];
+  (regs||[]).forEach(r => {
+    linhas.push([r.data||'', r.unidade||'', r.nome||'', r.cpf||'', r.demanda||'', r.status||'']);
+  });
+  const csv = linhas.map(l=>l.map(x=>`"${String(x||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  return csv;
+}
+
+
+    async function copiarTabela(){
+      try{
+        await navigator.clipboard.writeText(gerarCSV(viewRegistros));
+        showToast('success','Copiado!','Tabela copiada como CSV.');
+      }catch(_){
+        showToast('error','Falha ao copiar','Use o botão Baixar CSV.');
+      }
+    }
+    function baixarCSV(){
+      const csv = gerarCSV(viewRegistros);
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'central-solicitacoes.csv'; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // ===== Drawer de detalhes =====
+    let detLinhaAtual = null;
+    function abrirDetalhes(linha){
+      detLinhaAtual = linha;
+      document.getElementById('scrim').classList.add('show');
+      document.getElementById('drawer').classList.add('show');
+      document.getElementById('detLoading').classList.remove('hidden');
+      document.getElementById('detGrid').innerHTML = '';
+      document.getElementById('detChips').innerHTML = '';
+      document.getElementById('detTitulo').textContent = 'Detalhes';
+      document.getElementById('detSub').textContent = '—';
+
+      if (SAFE_GOOGLE){
+        google.script.run
+          .withSuccessHandler(popularDetalhes)
+          .withFailureHandler(err=>{
+            document.getElementById('detLoading').classList.add('hidden');
+            showToast('error','Erro ao carregar detalhes', String(err && err.message ? err.message : err));
+          })
+          .getRegistroCompleto(linha);
+      }
+    }
+    function fecharDetalhes(){
+      document.getElementById('scrim').classList.remove('show');
+      document.getElementById('drawer').classList.remove('show');
+    }
+    function esc(s){
+      return String(s==null?'':s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[m]));
+    }
+    function linkify(s){
+      const v = String(s||'').trim();
+      if (/^https?:\/\//i.test(v)) return `<a class="link" href="${esc(v)}" target="_blank" rel="noopener">abrir</a>`;
+      return esc(v);
+    }
+
+    // Escapar valor para atributo src da imagem
+    function escAttr(s){
+      return String(s==null?'':s).replace(/[&"<>'"]/g, m => ({
+        '&':'&amp;',
+        '"':'&quot;',
+        "'":'&#39;',
+        '<':'&lt;',
+        '>':'&gt;'
+      }[m]));
+    }
+
+    // Decide como renderizar cada valor da grade (incluindo assinatura e DOCUMENTOS/ANEXOS)
+    function renderValorDetalhe(kv){
+      const label = String(kv.label || '');
+      let val = kv.value;
+
+      // Assinatura digital (imagem)
+      if (/ASSINATURA/i.test(label) && typeof val === 'string'){
+        const raw = val.trim();
+        if (!raw) return '—';
+
+        // Já veio como dataURL
+        if (/^data:image\//i.test(raw)){
+          return `<img src="${escAttr(raw)}" alt="Assinatura digital" class="sig-img">`;
+        }
+
+        // Veio como URL (Drive, etc.)
+        if (/^https?:\/\//i.test(raw)){
+          return `<img src="${escAttr(raw)}" alt="Assinatura digital" class="sig-img">`;
+        }
+
+        // Veio como base64 "seco"
+        if (/^[A-Za-z0-9+/=]+$/.test(raw) && raw.length > 100){
+          const src = 'data:image/png;base64,' + raw;
+          return `<img src="${escAttr(src)}" alt="Assinatura digital" class="sig-img">`;
+        }
+      }
+
+      // DOCUMENTOS / ANEXOS → lista bonitinha de links por arquivo
+      if (/(DOCUMENTO|ANEXO)/i.test(label) && typeof val === 'string'){
+        const raw = val.trim();
+        if (!raw) return '—';
+
+        const linhas = raw.split(/\r?\n/).filter(Boolean);
+        if (!linhas.length) return '—';
+
+        let html = '<ul class="list-disc pl-4 space-y-1">';
+        linhas.forEach((ln, idx) => {
+          const m = ln.match(/(https?:\/\/[^\s]+)/i);
+          if (m){
+            const url = m[1];
+            let nome = ln.replace(m[1],'').replace(/[:\-–]\s*$/,'').trim();
+            if (!nome) nome = 'Documento ' + (idx+1);
+            html += `<li><a class="link" href="${escAttr(url)}" target="_blank" rel="noopener">${esc(nome)}</a></li>`;
+          } else {
+            html += `<li>${esc(ln)}</li>`;
+          }
+        });
+        html += '</ul>';
+        return html;
+      }
+
+      // Demais campos
+      return linkify(val);
+    }
+
+    function popularDetalhes(payload){
+      document.getElementById('detLoading').classList.add('hidden');
+      if (!payload){ showToast('error','Sem dados','Não foi possível carregar.'); return; }
+
+      const r = payload.resumo || {};
+      document.getElementById('detTitulo').textContent = r.nome ? r.nome : 'Detalhes';
+      document.getElementById('detSub').textContent = [r.data, r.unidade, r.protocolo ? ('Protocolo ' + r.protocolo) : ''].filter(Boolean).join(' • ');
+
+      // Chips de topo
+      const chips = [];
+      if (r.status) chips.push(`<span class="pill">Status: <b>${esc(r.status)}</b></span>`);
+      if (r.cpf)    chips.push(`<span class="pill">CPF: <b>${esc(r.cpf)}</b></span>`);
+      if (r.demanda)chips.push(`<span class="pill">Benefício: <b>${esc(r.demanda)}</b></span>`);
+      if (r.unidade)chips.push(`<span class="pill">Unidade: <b>${esc(r.unidade)}</b></span>`);
+      document.getElementById('detChips').innerHTML = chips.join('');
+
+      // Grade com TODOS os campos (cabeçalho → valor)
+      const grid = document.getElementById('detGrid');
+      grid.innerHTML = (payload.cols||[]).map(kv => `
+        <div class="k">${esc(kv.label)}</div>
+        <div class="v">${renderValorDetalhe(kv)}</div>
+      `).join('');
+
+      // Ações dentro do drawer
+      document.getElementById('btnDetBaixar').onclick = ()=> baixarPDFLinha(document.getElementById('btnDetBaixar'), payload.linha);
+      document.getElementById('detBtnAprovar').onclick = ()=> atualizar(document.getElementById('detBtnAprovar'), payload.linha, 'APROVADO');
+      document.getElementById('detBtnEntregar').onclick= ()=> atualizar(document.getElementById('detBtnEntregar'), payload.linha, 'ENTREGUE');
+      document.getElementById('detBtnPendente').onclick= ()=> atualizar(document.getElementById('detBtnPendente'), payload.linha, 'PENDENTE');
+      document.getElementById('detBtnRecusar').onclick = ()=> atualizar(document.getElementById('detBtnRecusar'), payload.linha, 'RECUSADO');
+    }
+
+    async function copiarDetalhes(){
+      const txt = document.getElementById('detGrid').innerText;
+      try{
+        await navigator.clipboard.writeText(txt);
+        showToast('success','Copiado!','Detalhes para a área de transferência.');
+      }
+      catch(_){
+        showToast('error','Falha ao copiar','Tente novamente.');
+      }
+    }
+
+    // Eventos / Init
+    document.getElementById('btnBuscar').addEventListener('click', ()=>buscar());
+    document.getElementById('ordenarPor').addEventListener('change', ()=>aplicarFiltrosFront());
+    document.getElementById('beneficioFiltro').addEventListener('change', ()=>aplicarFiltrosFront());
+
+    document.addEventListener('DOMContentLoaded', function(){
+      const cpfInput = document.getElementById("cpfBusca");
+      cpfInput.addEventListener("input", function(e){
+        let v=e.target.value.replace(/\D/g,"");
+        v=v.replace(/(\d{3})(\d)/,"$1.$2");
+        v=v.replace(/(\d{3})(\d)/,"$1.$2");
+        v=v.replace(/(\d{3})(\d{1,2})$/,"$1-$2");
+        e.target.value=v;
+      });
+    });
+
+    (function init(){
+      const chipTodos = document.querySelector('[data-status=""]');
+      if (chipTodos) chipTodos.classList.add('active');
+      popularUnidades();
+      mostrarTodos();
+    })();
+  </script>
+</body>
+</html>
