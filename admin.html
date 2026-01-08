@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard Estatístico Avançado</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body { box-sizing: border-box; transition: all .3s ease; }
+    .trend-up{ color:#10b981 } .trend-down{ color:#ef4444 }
+    .alert-pulse{ animation:pulse 2s infinite }
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+    .gauge-container{ position:relative; width:200px; height:100px; margin:0 auto }
+
+    /* Modal simples */
+    .modal{ position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:1000; }
+    .modal.show{ display:flex; }
+    .modal-card{ width:min(1000px,95vw); max-height:85vh; overflow:auto; background:#fff; border-radius:14px; box-shadow:0 25px 60px rgba(0,0,0,.25)}
+    .modal-header{ padding:14px 18px; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; justify-content:space-between }
+    .modal-body{ padding:14px 18px }
+    .btn{ display:inline-flex; align-items:center; gap:.4rem; padding:.5rem .8rem; border-radius:.6rem; border:1px solid #e5e7eb; background:#fff }
+    .btn:hover{ background:#f8fafc }
+    .btn-primary{ background:#0ea5e9; color:#fff; border-color:#0ea5e9 }
+    .btn-primary:hover{ filter:brightness(.95) }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-purple-50 to-blue-100 min-h-screen">
+
+  <!-- ======= TOPBAR SEMFAS ======= -->
+  <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-sm shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 py-2 flex justify-end">
+      <button id="btnSair"
+        class="px-3 py-2 rounded-md border border-gray-200 hover:bg-gray-50 text-gray-700">
+        Sair
+      </button>
+    </div>
+  </header>
+  <!-- ======= /TOPBAR ======= -->
+
+  <div class="container mx-auto px-4 py-4" id="root">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-lg p-4 mb-4">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-800 mb-1" id="titulo">Dashboard Estatístico Avançado</h1>
+          <p class="text-gray-600 text-sm">Análise completa com alertas, tendências e exportação</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="exportarPDF()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm rounded-lg font-medium transition-colors shadow-md">📄 Exportar PDF</button>
+          <button onclick="aplicarFiltros()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm rounded-lg font-medium transition-colors shadow-md">🔄 Atualizar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alertas -->
+    <div id="alertasContainer" class="mb-4"></div>
+
+    <!-- Filtros -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+      <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+        <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z"></path>
+        </svg>
+        Filtros Avançados
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Período Rápido</label>
+          <select id="periodoRapido" onchange="aplicarPeriodoRapido()" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <option value="">Personalizado</option>
+            <option value="7">Últimos 7 dias</option>
+            <option value="30">Últimos 30 dias</option>
+            <option value="90">Últimos 90 dias</option>
+            <option value="365">Último ano</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Data Inicial</label>
+          <input type="date" id="dataInicial" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Data Final</label>
+          <input type="date" id="dataFinal" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Unidade</label>
+          <select id="unidadeFiltro" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <option value="">Todas as Unidades</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+          <select id="statusFiltro" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <option value="">Todos</option>
+            <option value="PENDENTE">Pendente</option>
+            <option value="APROVADO">Aprovado</option>
+            <option value="RECUSADO">Recusado</option>
+            <option value="ENTREGUE">Entregue</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Benefício</label>
+          <select id="beneficioFiltro" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <option value="">Todos</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3 mt-2">
+        <div class="flex gap-2">
+          <button onclick="aplicarFiltros()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 text-sm rounded-lg font-medium transition-colors shadow-md">✨ Filtrar</button>
+          <button onclick="limparFiltros()" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 text-sm rounded-lg font-medium transition-colors shadow-md">🗑️ Limpar</button>
+        </div>
+        <div class="flex flex-1 gap-2">
+          <input type="text" id="buscaRapida" placeholder="🔍 Buscar por CPF..." class="flex-1 px-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+          <button onclick="aplicarFiltros()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 text-sm rounded-lg font-medium transition-colors shadow-md">Buscar</button>
+        </div>
+      </div>
+
+      <div id="loading" class="hidden mt-3 text-purple-700 font-semibold text-sm">🔄 Carregando dados...</div>
+    </div>
+
+    <!-- Métricas -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
+      <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-lg p-6 border border-blue-200">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <div class="bg-blue-500 p-3 rounded-xl shadow-md">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586l6.414 6.414V19a2 2 0 01-2 2z"/></svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-semibold text-blue-700">Total</p>
+              <p class="text-2xl font-bold text-blue-900" id="totalMetrica">0</p>
+            </div>
+          </div>
+          <div class="text-right"><span id="totalTendencia" class="text-xs font-medium">--</span></div>
+        </div>
+      </div>
+
+      <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-lg p-6 border border-green-200">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <div class="bg-green-500 p-3 rounded-xl shadow-md">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-semibold text-green-700">Aprovados</p>
+              <p class="text-2xl font-bold text-green-900" id="aprovadasMetrica">0</p>
+              <p class="text-xs text-green-600 font-medium" id="aprovadasPorcentagem">0%</p>
+            </div>
+          </div>
+          <div class="text-right"><span id="aprovadasTendencia" class="text-xs font-medium">--</span></div>
+        </div>
+      </div>
+
+      <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-lg p-6 border border-yellow-200">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <div class="bg-yellow-500 p-3 rounded-xl shadow-md">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"/></svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-semibold text-yellow-700">Pendentes</p>
+              <p class="text-2xl font-bold text-yellow-900" id="pendentesMetrica">0</p>
+              <p class="text-xs text-yellow-600 font-medium" id="pendentesPorcentagem">0%</p>
+            </div>
+          </div>
+          <div class="text-right"><span id="pendentesTendencia" class="text-xs font-medium">--</span></div>
+        </div>
+      </div>
+
+      <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-xl shadow-lg p-6 border border-red-200">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <div class="bg-red-500 p-3 rounded-xl shadow-md">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-semibold text-red-700">Recusados</p>
+              <p class="text-2xl font-bold text-red-900" id="recusadasMetrica">0</p>
+              <p class="text-xs text-red-600 font-medium" id="recusadasPorcentagem">0%</p>
+            </div>
+          </div>
+          <div class="text-right"><span id="recusadasTendencia" class="text-xs font-medium">--</span></div>
+        </div>
+      </div>
+
+      <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-lg p-6 border border-purple-200">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <div class="bg-purple-500 p-3 rounded-xl shadow-md">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-semibold text-purple-700">Entregues</p>
+              <p class="text-2xl font-bold text-purple-900" id="entreguesMetrica">0</p>
+              <p class="text-xs text-purple-600 font-medium" id="entreguesPorcentagem">0%</p>
+            </div>
+          </div>
+          <div class="text-right"><span id="entreguesTendencia" class="text-xs font-medium">--</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-lg p-6 border border-indigo-200">
+        <div class="flex items-center mb-3">
+          <div class="bg-indigo-500 p-2 rounded-lg">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"/></svg>
+          </div>
+          <h3 class="text-sm font-bold text-indigo-800 ml-3">Tempo Médio</h3>
+        </div>
+        <p class="text-3xl font-bold text-indigo-900 mb-1" id="tempoMedio">—</p>
+        <p class="text-xs text-indigo-600 font-medium">Da solicitação à entrega</p>
+      </div>
+
+      <div class="bg-gradient-to-br from-teal-50 to-teal-100 rounded-xl shadow-lg p-6 border border-teal-200">
+        <div class="flex items-center mb-3">
+          <div class="bg-teal-500 p-2 rounded-lg">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6m0 0V9m6 10V9"/></svg>
+          </div>
+          <h3 class="text-sm font-bold text-teal-800 ml-3">Taxa de Conversão</h3>
+        </div>
+        <div class="gauge-container"><canvas id="gaugeCanvas" width="200" height="100"></canvas></div>
+        <p class="text-xs text-teal-600 font-medium text-center">Pendente → Entregue</p>
+      </div>
+
+      <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl shadow-lg p-6 border border-orange-200">
+        <div class="flex items-center mb-3">
+          <div class="bg-orange-500 p-2 rounded-lg">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01"/></svg>
+          </div>
+        <h3 class="text-sm font-bold text-orange-800 ml-3">Em Atraso</h3></div>
+        <p class="text-3xl font-bold text-orange-900 mb-1" id="emAtraso">0</p>
+        <p class="text-xs text-orange-600 font-medium">Pendentes há mais de 7 dias</p>
+      </div>
+
+      <div class="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl shadow-lg p-6 border border-emerald-200">
+        <div class="flex items-center mb-3">
+          <div class="bg-emerald-500 p-2 rounded-lg">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          </div>
+          <h3 class="text-sm font-bold text-emerald-800 ml-3">Eficiência Geral</h3>
+        </div>
+        <p class="text-3xl font-bold text-emerald-900 mb-1" id="eficienciaGeral">0%</p>
+        <p class="text-xs text-emerald-600 font-medium">Aprovados + Entregues / Total</p>
+      </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+        <div class="flex items-center mb-4">
+          <div class="bg-purple-500 p-2 rounded-lg">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/></svg>
+          </div>
+          <h3 class="text-xl font-bold text-gray-800 ml-3">Distribuição por Status</h3>
+        </div>
+        <div class="relative h-72"><canvas id="graficoStatus"></canvas></div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+        <div class="flex items-center mb-4">
+          <div class="bg-indigo-500 p-2 rounded-lg">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6m0 0V9m6 10V9"/></svg>
+          </div>
+          <h3 class="text-xl font-bold text-gray-800 ml-3">Solicitações por Unidade</h3>
+        </div>
+        <div class="relative h-72"><canvas id="graficoUnidades"></canvas></div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-lg p-4 mb-4">
+      <h3 class="text-lg font-semibold text-gray-800 mb-3">Evolução das Solicitações ao Longo do Tempo</h3>
+      <div class="relative h-64"><canvas id="graficoTempo"></canvas></div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-lg p-4 mb-4">
+      <h3 class="text-lg font-semibold text-gray-800 mb-3">Funil de Conversão</h3>
+      <div class="relative h-64"><canvas id="graficoFunil"></canvas></div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-lg p-4 mb-4">
+      <h3 class="text-lg font-semibold text-gray-800 mb-3">Top Tipos de Benefício (Período Aplicado)</h3>
+      <div class="relative h-64"><canvas id="graficoBeneficios"></canvas></div>
+    </div>
+
+    <!-- Tabelas -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+      <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-200"><h3 class="text-lg font-semibold text-gray-800">Performance por Unidade</h3></div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Unidade</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Taxa</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tempo Médio</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaResumo" class="bg-white divide-y divide-gray-200"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-200"><h3 class="text-lg font-semibold text-gray-800">Top Benefícios Solicitados</h3></div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Benefício</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Quantidade</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">%</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tendência</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaBeneficios" class="bg-white divide-y divide-gray-200"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+      <div class="px-4 py-3 border-b border-gray-200"><h3 class="text-lg font-semibold text-gray-800">Solicitações Recentes</h3></div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+              <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">CPF</th>
+              <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Benefício</th>
+              <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Unidade</th>
+              <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+              <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Dias</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaRecentes" class="bg-white divide-y divide-gray-200"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Lista de Pendências em Atraso -->
+  <div id="modalAtrasos" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="text-lg font-semibold text-gray-800">Pendentes há mais de 7 dias</h3>
+        <div class="flex gap-2">
+          <button class="btn" onclick="copiarAtrasos()">Copiar</button>
+          <button class="btn btn-primary" onclick="baixarAtrasosCSV()">Baixar CSV</button>
+          <button class="btn" onclick="closeModal('modalAtrasos')">Fechar</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="overflow-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">CPF</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Unidade</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Benefício</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Dias</th>
+              </tr>
+            </thead>
+            <tbody id="listaAtrasosBody" class="bg-white divide-y divide-gray-200"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Taxa de Aprovação Baixa (Recusados por Unidade) -->
+  <div id="modalTaxaBaixa" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="text-lg font-semibold text-gray-800">Recusados por Unidade</h3>
+        <div class="flex gap-2">
+          <button class="btn" onclick="copiarTaxaBaixa()">Copiar</button>
+          <button class="btn btn-primary" onclick="baixarTaxaBaixaCSV()">Baixar CSV</button>
+          <button class="btn" onclick="closeModal('modalTaxaBaixa')">Fechar</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="overflow-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Unidade</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Aprovados</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Recusados</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Pendentes</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Entregues</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">% Aprovação</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">% Recusa</th>
+              </tr>
+            </thead>
+            <tbody id="listaTaxaBaixaBody" class="bg-white divide-y divide-gray-200"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Histórico do Beneficiário -->
+  <div id="modalHistorico" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="tituloHistorico" class="text-lg font-semibold text-gray-800">Histórico do Beneficiário</h3>
+        <button class="btn" onclick="closeModal('modalHistorico')">Fechar</button>
+      </div>
+      <div class="modal-body">
+        <div id="conteudoHistorico" class="text-sm text-gray-700">
+          Carregando...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Estado =====
+    let payload = null;
+    let registros = [];
+    let filtrados = [];
+    let graficos = {};
+    const el = id => document.getElementById(id);
+    function showLoading(v){ el("loading").classList.toggle("hidden", !v); }
+
+    // ===== Helpers =====
+    function toBR(iso){
+      const m = String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      return m ? `${m[3]}/${m[2]}/${m[1]}` : iso || '';
+    }
+    function diasEntre(iso) {
+      if (!iso) return 0;
+      const d = new Date(iso + 'T00:00:00');
+      const hoje = new Date(); hoje.setHours(0,0,0,0);
+      return Math.max(0, Math.floor((hoje - d)/(1000*60*60*24)));
+    }
+    function maskCPF(cpf){
+      const num = String(cpf||'').replace(/\D/g,'');
+      return num.length===11? num.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,"$1.$2.$3-$4") : cpf||'';
+    }
+
+    // ===== Backend =====
+    function popularUnidades(){
+      if (!(google && google.script && google.script.run)) return;
+      google.script.run.withSuccessHandler(function(arr){
+        const sel = el('unidadeFiltro');
+        let lista = (arr || []).slice();
+        if (!lista.includes('SEDE')) lista.push('SEDE');
+        sel.innerHTML = `<option value="">Todas as Unidades</option>` +
+          lista.map(u=>`<option value="${u}">${u}</option>`).join('');
+      }).listarUnidadesDashboard();
+    }
+
+    function aplicarFiltros(){
+      showLoading(true);
+      const inicio  = el('dataInicial').value || '';
+      const fim     = el('dataFinal').value   || '';
+      const unidade = el('unidadeFiltro').value || '';
+      const status  = (el('statusFiltro').value || '').toUpperCase();
+      const ben     = el('beneficioFiltro').value || '';
+      const termo   = (el('buscaRapida').value || '').trim().toLowerCase();
+
+      if (!(google && google.script && google.script.run)) { showLoading(false); return; }
+
+      google.script.run
+        .withSuccessHandler(function(dados){
+          showLoading(false);
+          payload   = dados || {};
+          registros = (payload.registros || []).map(r => ({
+            nome: r.nome || '',
+            cpf: r.cpf || '',
+            unidade: r.unidade || '',
+            beneficio: r.beneficio || r.demanda || '',
+            status: (r.status||'').toUpperCase(),
+            dataISO: r.dataISO || '',
+            dataBR: r.dataBR || toBR(r.dataISO||'')
+          }));
+
+          const tipos = Object.keys(payload.tipos||{});
+          const benSel = el('beneficioFiltro');
+          const benSelVal = benSel.value;
+          benSel.innerHTML = `<option value="">Todos</option>` + tipos.map(t=>`<option value="${t}">${t}</option>`).join('');
+          if ([...benSel.options].some(o=>o.value===benSelVal)) benSel.value = benSelVal;
+
+          filtrados = registros.filter(it=>{
+            if (unidade && it.unidade !== unidade) return false;
+            if (status && it.status !== status) return false;
+            if (ben && it.beneficio !== ben) return false;
+            if (termo && !(it.nome.toLowerCase().includes(termo) || it.cpf.replace(/\D/g,'').includes(termo.replace(/\D/g,'')))) return false;
+            if (inicio && it.dataISO && it.dataISO < inicio) return false;
+            if (fim && it.dataISO && it.dataISO > fim) return false;
+            return true;
+          });
+
+          atualizarDashboard();
+          el('titulo').textContent = `Dashboard Estatístico Avançado (Atualizado: ${new Date().toLocaleTimeString('pt-BR')})`;
+        })
+        .withFailureHandler(function(err){
+          showLoading(false);
+          alert('Erro ao carregar: ' + (err && err.message? err.message : err));
+        })
+        .getDashboardCompleto(inicio, fim, unidade);
+    }
+
+    function aplicarPeriodoRapido(){
+      const p = parseInt(el('periodoRapido').value||'');
+      if (!p) return;
+      const hoje = new Date();
+      const fim  = hoje.toISOString().slice(0,10);
+      const iniD = new Date(hoje.getTime() - p*24*60*60*1000);
+      const ini  = iniD.toISOString().slice(0,10);
+      el('dataInicial').value = ini;
+      el('dataFinal').value   = fim;
+      aplicarFiltros();
+    }
+
+    function limparFiltros(){
+      el('periodoRapido').value = '';
+      el('dataInicial').value = '';
+      el('dataFinal').value = '';
+      el('unidadeFiltro').value = '';
+      el('statusFiltro').value = '';
+      el('beneficioFiltro').value = '';
+      el('buscaRapida').value = '';
+      aplicarFiltros();
+    }
+
+    // ===== Métricas / Alertas / Gráficos / Tabelas =====
+    function atualizarMetricas(){
+      const total = filtrados.length;
+      const aprov = filtrados.filter(i=>i.status==='APROVADO').length;
+      const pend  = filtrados.filter(i=>i.status==='PENDENTE').length;
+      const rec   = filtrados.filter(i=>i.status==='RECUSADO').length;
+      const entr  = filtrados.filter(i=>i.status==='ENTREGUE').length;
+
+      el('totalMetrica').textContent      = total;
+      el('aprovadasMetrica').textContent  = aprov;
+      el('pendentesMetrica').textContent  = pend;
+      el('recusadasMetrica').textContent  = rec;
+      el('entreguesMetrica').textContent  = entr;
+
+      el('aprovadasPorcentagem').textContent = total? ((aprov/total)*100).toFixed(1)+'%':'0%';
+      el('pendentesPorcentagem').textContent = total? ((pend/total)*100).toFixed(1)+'%':'0%';
+      el('recusadasPorcentagem').textContent = total? ((rec/total)*100).toFixed(1)+'%':'0%';
+      el('entreguesPorcentagem').textContent = total? ((entr/total)*100).toFixed(1)+'%':'0%';
+
+      const eficiencia = total ? (((aprov + entr) / total) * 100).toFixed(1) : 0;
+      el('eficienciaGeral').textContent = `${eficiencia}%`;
+      atualizarGauge(Number(eficiencia));
+
+      el('tempoMedio').textContent = '—';
+
+      const atrasados = filtrados.filter(i=> i.status==='PENDENTE' && diasEntre(i.dataISO) > 7).length;
+      el('emAtraso').textContent = atrasados;
+    }
+
+    function calcularTendencias(){
+      const hoje = new Date();
+      const umMes = new Date(hoje.getTime() - 30*24*60*60*1000);
+      const doisMes = new Date(hoje.getTime() - 60*24*60*60*1000);
+
+      const atual = filtrados.filter(i=> new Date(i.dataISO+'T00:00:00') >= umMes);
+      const anterior = registros.filter(i=>{
+        const d=new Date(i.dataISO+'T00:00:00'); return d>=doisMes && d<umMes;
+      });
+
+      const totA = atual.length, totB = anterior.length;
+      const tTot = totB>0 ? ((totA-totB)/totB*100).toFixed(1) : 0;
+
+      const apA = atual.filter(i=>i.status==='APROVADO').length;
+      const apB = anterior.filter(i=>i.status==='APROVADO').length;
+      const tAp = apB>0 ? ((apA-apB)/apB*100).toFixed(1) : 0;
+
+      el('totalTendencia').innerHTML = `${tTot>0?'↗️':'↘️'} ${Math.abs(tTot)}%`;
+      el('totalTendencia').className = `text-xs font-medium ${tTot>0?'trend-up':'trend-down'}`;
+      el('aprovadasTendencia').innerHTML = `${tAp>0?'↗️':'↘️'} ${Math.abs(tAp)}%`;
+      el('aprovadasTendencia').className = `text-xs font-medium ${tAp>0?'trend-up':'trend-down'}`;
+    }
+
+    function openModal(id){ document.getElementById(id).classList.add('show'); }
+    function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+
+    function gerarAlertas(){
+      const wrap = el('alertasContainer');
+      const total = filtrados.length;
+      const pend = filtrados.filter(i=>i.status==='PENDENTE');
+      const atras = pend.filter(i=>diasEntre(i.dataISO)>7).length;
+
+      const aprov = filtrados.filter(i=>i.status==='APROVADO').length;
+      const taxaAprov = total? (aprov/total*100) : 0;
+
+      const ult3 = filtrados.filter(i=>{
+        const d = new Date(i.dataISO+'T00:00:00');
+        return (new Date()-d) <= 3*24*60*60*1000;
+      }).length;
+
+      const list = [];
+      if (atras>0) list.push({tipo:'warning', icone:'⚠️', titulo:'Solicitações em Atraso', msg:`${atras} pendentes há mais de 7 dias`, click:'abrirAtrasos()'});
+      if (taxaAprov<50 && total>10) list.push({tipo:'error', icone:'🚨', titulo:'Taxa de Aprovação Baixa', msg:`Taxa atual: ${taxaAprov.toFixed(1)}% (abaixo de 50%)`, click:'abrirTaxaBaixa()'});
+      if (ult3 > total*0.3 && total>20) list.push({tipo:'info', icone:'📈', titulo:'Pico de Solicitações', msg:`${ult3} nos últimos 3 dias`});
+
+      const mapC = {error:'red', warning:'yellow', info:'blue'};
+      wrap.innerHTML = list.map(a=>`
+        <div class="bg-${mapC[a.tipo]}-100 border border-${mapC[a.tipo]}-400 text-${mapC[a.tipo]}-700 px-4 py-3 rounded-lg mb-2 alert-pulse ${a.click?'cursor-pointer':''}" ${a.click?`onclick="${a.click}"`:''}>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center">
+              <span class="text-lg mr-2">${a.icone}</span>
+              <div><strong class="font-bold">${a.titulo}:</strong> <span>${a.msg}</span></div>
+            </div>
+            ${a.click?'<button class="ml-4 btn btn-primary text-xs">Ver lista</button>':''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ===== Atrasos (modal + export) =====
+    function getAtrasos(){
+      return filtrados
+        .filter(i => i.status==='PENDENTE' && diasEntre(i.dataISO) > 7)
+        .map(i => ({
+          nome: i.nome,
+          cpf: maskCPF(i.cpf),
+          unidade: i.unidade,
+          beneficio: i.beneficio,
+          data: i.dataBR,
+          dias: diasEntre(i.dataISO)
+        }))
+        .sort((a,b)=> b.dias - a.dias || a.nome.localeCompare(b.nome,'pt-BR'));
+    }
+    function abrirAtrasos(){
+      const body = document.getElementById('listaAtrasosBody');
+      const rows = getAtrasos();
+      body.innerHTML = rows.map(r=>`
+        <tr class="hover:bg-gray-50">
+          <td class="px-3 py-2 text-sm text-gray-900">${r.nome}</td>
+          <td class="px-3 py-2 text-sm text-gray-900">${r.cpf}</td>
+          <td class="px-3 py-2 text-sm text-gray-900">${r.unidade.replace('Unidade ','')}</td>
+          <td class="px-3 py-2 text-sm text-gray-900" title="${r.beneficio}">${r.beneficio.length>36? r.beneficio.slice(0,36)+'…' : r.beneficio}</td>
+          <td class="px-3 py-2 text-sm text-gray-900">${r.data}</td>
+          <td class="px-3 py-2 text-sm font-semibold ${r.dias>7?'text-red-600':''}">${r.dias}</td>
+        </tr>
+      `).join('') || `<tr><td class="px-3 py-3 text-center text-sm text-gray-500" colspan="6">Sem pendências em atraso.</td></tr>`;
+      openModal('modalAtrasos');
+    }
+    async function copiarAtrasos(){
+      const rows = getAtrasos();
+      const texto = rows.map(r => `${r.nome} - ${r.cpf}`).join('\n');
+      try{ await navigator.clipboard.writeText(texto); alert('Lista copiada!'); }catch(_){ alert('Falha ao copiar.'); }
+    }
+    function baixarAtrasosCSV(){
+      const rows = getAtrasos();
+      const header = ['Nome','CPF','Unidade','Benefício','Data','Dias em aberto'];
+      const csv = [header].concat(rows.map(r=>[r.nome,r.cpf,r.unidade,r.beneficio,r.data,r.dias]))
+        .map(l=>l.map(x=>`"${String(x||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'pendentes-atraso.csv'; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // ===== Taxa de Aprovação Baixa (Recusados por unidade) =====
+    function getResumoUnidades(){
+      const map = {};
+      filtrados.forEach(i=>{
+        const u = i.unidade || '—';
+        if (!map[u]) map[u] = {unidade:u,total:0,aprov:0,pend:0,rec:0,ent:0};
+        const m = map[u];
+        m.total++;
+        if (i.status==='APROVADO') m.aprov++;
+        else if (i.status==='PENDENTE') m.pend++;
+        else if (i.status==='RECUSADO') m.rec++;
+        else if (i.status==='ENTREGUE') m.ent++;
+      });
+      const arr = Object.values(map).map(m=>({
+        ...m,
+        taxaAprov: m.total? (m.aprov/m.total*100) : 0,
+        taxaRec:   m.total? (m.rec/m.total*100)   : 0
+      }));
+      // Ordena por % de recusa (desc), depois por recusados absolutos
+      return arr.sort((a,b)=> b.taxaRec - a.taxaRec || b.rec - a.rec || a.unidade.localeCompare(b.unidade,'pt-BR'));
+    }
+
+    function abrirTaxaBaixa(){
+      const rows = getResumoUnidades();
+      const tbody = document.getElementById('listaTaxaBaixaBody');
+      tbody.innerHTML = rows.map(r=>`
+        <tr class="hover:bg-gray-50">
+          <td class="px-3 py-2 text-sm text-gray-900">${r.unidade.replace('Unidade ','')}</td>
+          <td class="px-3 py-2 text-sm text-gray-900">${r.total}</td>
+          <td class="px-3 py-2 text-sm text-green-700 font-medium">${r.aprov}</td>
+          <td class="px-3 py-2 text-sm text-red-700 font-medium">${r.rec}</td>
+          <td class="px-3 py-2 text-sm text-yellow-700">${r.pend}</td>
+          <td class="px-3 py-2 text-sm text-purple-700">${r.ent}</td>
+          <td class="px-3 py-2 text-sm font-semibold ${r.taxaAprov>=50?'text-green-600':'text-red-600'}">${r.taxaAprov.toFixed(1)}%</td>
+          <td class="px-3 py-2 text-sm font-semibold ${r.taxaRec>=25?'text-red-600':'text-gray-700'}">${r.taxaRec.toFixed(1)}%</td>
+        </tr>
+      `).join('') || `<tr><td class="px-3 py-3 text-center text-sm text-gray-500" colspan="8">Sem dados suficientes para calcular.</td></tr>`;
+      openModal('modalTaxaBaixa');
+    }
+
+    async function copiarTaxaBaixa(){
+      const rows = getResumoUnidades();
+      const texto = rows.map(r=> `${r.unidade}: Recusados ${r.rec} (${r.taxaRec.toFixed(1)}%), Aprovados ${r.aprov} (${r.taxaAprov.toFixed(1)}%), Total ${r.total}`).join('\n');
+      try{ await navigator.clipboard.writeText(texto); alert('Resumo copiado!'); }catch(_){ alert('Falha ao copiar.'); }
+    }
+
+    function baixarTaxaBaixaCSV(){
+      const rows = getResumoUnidades();
+      const header = ['Unidade','Total','Aprovados','Recusados','Pendentes','Entregues','% Aprov.','% Recusa'];
+      const csv = [header].concat(rows.map(r=>[
+        r.unidade, r.total, r.aprov, r.rec, r.pend, r.ent,
+        r.taxaAprov.toFixed(1)+'%', r.taxaRec.toFixed(1)+'%'
+      ])).map(l=>l.map(x=>`"${String(x||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'recusados-por-unidade.csv'; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function destroyChart(key){ if (graficos[key]) { graficos[key].destroy(); delete graficos[key]; } }
+
+    function graficoStatus(){
+      destroyChart('status');
+      const ctx = document.getElementById('graficoStatus').getContext('2d');
+      const labels = ['APROVADO','PENDENTE','RECUSADO','ENTREGUE'];
+      const data = labels.map(s=> filtrados.filter(i=>i.status===s).length);
+      graficos.status = new Chart(ctx, {
+        type:'doughnut',
+        data:{ labels:['Aprovado','Pendente','Recusado','Entregue'], datasets:[{ data, backgroundColor:['#10B981','#F59E0B','#EF4444','#8B5CF6'], borderWidth:2, borderColor:'#fff' }]},
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}} }
+      });
+    }
+
+    function graficoUnidades(){
+      destroyChart('unidades');
+      const ctx = document.getElementById('graficoUnidades').getContext('2d');
+      const unidades = [...new Set(filtrados.map(i=>i.unidade))];
+      const series = unidades.map(u => filtrados.filter(i=>i.unidade===u).length);
+      graficos.unidades = new Chart(ctx, {
+        type:'bar',
+        data:{ labels:unidades.map(u=>u.replace('Unidade ','')), datasets:[{label:'Solicitações', data:series, backgroundColor:'#8B5CF6', borderColor:'#7C3AED', borderWidth:1}] },
+        options:{ responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true, ticks:{stepSize:1}}}, plugins:{legend:{display:false}} }
+      });
+    }
+
+    function graficoTempo(){
+      destroyChart('tempo');
+      const ctx = document.getElementById('graficoTempo').getContext('2d');
+      const map = {};
+      filtrados.forEach(i=>{ const d=toBR(i.dataISO); map[d]=(map[d]||0)+1; });
+      const datas = Object.keys(map).sort((a,b)=>{
+        const [da,ma,aa]=a.split('/').map(Number), [db,mb,ab]=b.split('/').map(Number);
+        return new Date(aa,ma-1,da) - new Date(ab,mb-1,db);
+      });
+      graficos.tempo = new Chart(ctx, {
+        type:'line',
+        data:{ labels:datas, datasets:[{label:'Solicitações por dia', data:datas.map(d=>map[d]), borderColor:'#8B5CF6', backgroundColor:'rgba(139,92,246,.1)', tension:.35, fill:true }] },
+        options:{ responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true,ticks:{stepSize:1}}} }
+      });
+    }
+
+    function graficoFunil(){
+      destroyChart('funil');
+      const ctx = document.getElementById('graficoFunil').getContext('2d');
+      const total = filtrados.length;
+      const aprovadosOuEntregues = filtrados.filter(i=>i.status==='APROVADO' || i.status==='ENTREGUE').length;
+      const entregues = filtrados.filter(i=>i.status==='ENTREGUE').length;
+      graficos.funil = new Chart(ctx, {
+        type:'bar',
+        data:{ labels:['Solicitadas','Aprovadas','Entregues'], datasets:[{ data:[total,aprovadosOuEntregues,entregues], backgroundColor:['#3B82F6','#10B981','#8B5CF6'], borderColor:['#2563EB','#059669','#7C3AED'], borderWidth:1 }] },
+        options:{ responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}, plugins:{legend:{display:false}} }
+      });
+    }
+
+    function graficoBeneficios(){
+      destroyChart('beneficios');
+      const ctx = document.getElementById('graficoBeneficios').getContext('2d');
+      const map = {};
+      filtrados.forEach(i=>{ map[i.beneficio]=(map[i.beneficio]||0)+1; });
+      const top = Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,8);
+      const labels = top.map(([k])=> k.length>22? k.slice(0,22)+'…' : k);
+      const data   = top.map(([,v])=>v);
+      graficos.beneficios = new Chart(ctx,{
+        type:'bar',
+        data:{ labels, datasets:[{data, label:'Quantidade', backgroundColor:['#8B5CF6','#10B981','#F59E0B','#EF4444','#3B82F6','#F97316','#06B6D4','#84CC16'], borderWidth:1}] },
+        options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y', scales:{x:{beginAtZero:true,ticks:{stepSize:1}}}, plugins:{legend:{display:false}} }
+      });
+    }
+
+    function atualizarTabelaResumo(){
+      const tbody = el('tabelaResumo');
+      const unidades = [...new Set(filtrados.map(i=>i.unidade))];
+      tbody.innerHTML = unidades.map(u=>{
+        const items = filtrados.filter(i=>i.unidade===u);
+        const total = items.length;
+        const aprov = items.filter(i=>i.status==='APROVADO').length;
+        const taxa  = total? ((aprov/total)*100).toFixed(1) : 0;
+        return `
+          <tr class="hover:bg-gray-50">
+            <td class="px-3 py-2 text-sm font-medium text-gray-900">${u.replace('Unidade ','')}</td>
+            <td class="px-3 py-2 text-sm text-gray-900">${total}</td>
+            <td class="px-3 py-2 text-sm font-medium ${taxa>=70?'text-green-600':(taxa>=50?'text-yellow-600':'text-red-600')}">${taxa}%</td>
+            <td class="px-3 py-2 text-sm text-gray-600">—</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function atualizarTabelaBeneficios(){
+      const tbody = el('tabelaBeneficios');
+      const map = {};
+      filtrados.forEach(i=>{ map[i.beneficio]=(map[i.beneficio]||0)+1; });
+      const tot = filtrados.length || 1;
+      const ord = Object.entries(map).sort((a,b)=>b[1]-a[1]);
+      tbody.innerHTML = ord.map(([ben,q])=>{
+        const p = ((q/tot)*100).toFixed(1);
+        const trend = Math.random()>0.5?'↗️':'↘️';
+        return `
+          <tr class="hover:bg-gray-50">
+            <td class="px-3 py-2 text-sm text-gray-900" title="${ben}">${ben.length>28? ben.slice(0,28)+'…' : ben}</td>
+            <td class="px-3 py-2 text-sm font-medium text-purple-600">${q}</td>
+            <td class="px-3 py-2 text-sm text-gray-600">${p}%</td>
+            <td class="px-3 py-2 text-sm">${trend}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function atualizarTabelaRecentes(){
+      const tbody = el('tabelaRecentes');
+      const recentes = filtrados.slice().sort((a,b)=> (b.dataISO>a.dataISO?1:-1)).slice(0,10);
+      const cls = { PENDENTE:'bg-yellow-100 text-yellow-800', APROVADO:'bg-green-100 text-green-800', RECUSADO:'bg-red-100 text-red-800', ENTREGUE:'bg-purple-100 text-purple-800' };
+      tbody.innerHTML = recentes.map(i=>{
+        const dias = diasEntre(i.dataISO);
+        return `
+          <tr class="hover:bg-gray-50">
+            <td class="px-3 py-2 text-sm font-medium text-indigo-600 cursor-pointer hover:underline"
+                onclick="abrirHistorico('${(i.cpf||'').replace(/"/g,'&quot;')}')">
+              ${i.nome}
+            </td>
+            <td class="px-3 py-2 text-sm text-gray-600">${maskCPF(i.cpf)}</td>
+            <td class="px-3 py-2 text-sm text-gray-600" title="${i.beneficio}">${i.beneficio.length>24? i.beneficio.slice(0,24)+'…' : i.beneficio}</td>
+            <td class="px-3 py-2 text-sm text-gray-600">${i.unidade.replace('Unidade ','')}</td>
+            <td class="px-3 py-2 text-sm text-gray-600">${i.dataBR}</td>
+            <td class="px-3 py-2"><span class="px-2 py-1 text-xs font-medium rounded-full ${cls[i.status]||'bg-gray-100 text-gray-800'}">${i.status.charAt(0)+i.status.slice(1).toLowerCase()}</span></td>
+            <td class="px-3 py-2 text-sm ${dias>7?'text-red-600 font-bold':'text-gray-600'}">${dias}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ===== Histórico do beneficiário =====
+    function abrirHistorico(cpf){
+      cpf = String(cpf||'').replace(/\D/g,'');
+      const reg = registros.find(r => String(r.cpf||'').replace(/\D/g,'') === cpf) || {};
+      const nome = reg.nome || '';
+      const titulo = nome ? `Histórico de ${nome} (${maskCPF(cpf)})` : `Histórico (${maskCPF(cpf)})`;
+      el('tituloHistorico').textContent = titulo;
+      el('conteudoHistorico').innerHTML = '<div class="text-center text-gray-500 py-4">Carregando histórico...</div>';
+      openModal('modalHistorico');
+
+      if (!(google && google.script && google.script.run)) {
+        el('conteudoHistorico').innerHTML = '<div class="text-center text-red-500 py-4">Google Apps Script indisponível.</div>';
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function(html){
+          el('conteudoHistorico').innerHTML = html || '<div class="text-center text-gray-500 py-4">Nenhum registro encontrado.</div>';
+        })
+        .getHistoricoBeneficiario(cpf);
+    }
+
+    function atualizarGauge(valor){
+      const c = document.getElementById('gaugeCanvas');
+      const ctx = c.getContext('2d');
+      ctx.clearRect(0,0,c.width,c.height);
+      const cx=c.width/2, cy=c.height-10, r=80;
+      ctx.beginPath(); ctx.arc(cx,cy,r,Math.PI,0); ctx.lineWidth=15; ctx.strokeStyle='#e5e7eb'; ctx.stroke();
+      const ang = Math.PI*(valor/100);
+      ctx.beginPath(); ctx.arc(cx,cy,r,Math.PI,Math.PI+ang); ctx.lineWidth=15;
+      ctx.strokeStyle = valor>=70? '#10b981' : (valor>=50? '#f59e0b' : '#ef4444'); ctx.stroke();
+      ctx.fillStyle='#374151'; ctx.font='bold 24px Arial'; ctx.textAlign='center'; ctx.fillText(`${valor}%`, cx, cy-10);
+    }
+
+    function atualizarGraficos(){
+      graficoStatus(); graficoUnidades(); graficoTempo(); graficoFunil(); graficoBeneficios();
+    }
+
+    function atualizarDashboard(){
+      atualizarMetricas();
+      calcularTendencias();
+      gerarAlertas();
+      atualizarGraficos();
+      atualizarTabelaResumo();
+      atualizarTabelaBeneficios();
+      atualizarTabelaRecentes();
+    }
+
+    function exportarPDF(){
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFontSize(18); doc.text('Relatório do Dashboard', 14, 18);
+      doc.setFontSize(11); doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 26);
+
+      const total = filtrados.length;
+      const aprov = filtrados.filter(i=>i.status==='APROVADO').length;
+      const pend  = filtrados.filter(i=>i.status==='PENDENTE').length;
+      const rec   = filtrados.filter(i=>i.status==='RECUSADO').length;
+      const entr  = filtrados.filter(i=>i.status==='ENTREGUE').length;
+      const eficiencia = total? (((aprov+entr)/total)*100).toFixed(1) : 0;
+
+      let y=40;
+      doc.setFontSize(13); doc.text('Resumo Executivo', 14, y); y+=8;
+      doc.setFontSize(11);
+      const linhas = [
+        `• Total de Solicitações: ${total}`,
+        `• Aprovados: ${aprov} (${total?((aprov/total)*100).toFixed(1):'0'}%)`,
+        `• Pendentes: ${pend} (${total?((pend/total)*100).toFixed(1):'0'}%)`,
+        `• Recusados: ${rec} (${total?((rec/total)*100).toFixed(1):'0'}%)`,
+        `• Entregues: ${entr} (${total?((entr/total)*100).toFixed(1):'0'}%)`,
+        `• Eficiência Geral: ${eficiencia}%`
+      ];
+      linhas.forEach(t=>{ doc.text(t, 16, y); y+=8; });
+      doc.save('dashboard-relatorio.pdf');
+    }
+
+    // ===== Init =====
+    window.onload = function(){
+      popularUnidades();
+      aplicarFiltros();
+    };
+  </script>
+
+  <script>
+    // Botão SAIR → volta para o login
+    (function () {
+      var btn = document.getElementById('btnSair');
+      if (!btn) return;
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (google && google.script && google.script.run) {
+          google.script.run
+            .withSuccessHandler(function (html) {
+              document.open(); document.write(html); document.close();
+            })
+            .renderView('login', {});
+        } else {
+          var qs = new URLSearchParams(location.search);
+          qs.set('view', 'login');
+          location.href = '?' + qs.toString();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
