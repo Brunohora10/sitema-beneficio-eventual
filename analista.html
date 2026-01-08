@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel do Analista</title>
+  <style>
+    :root{ --ok:#0B6E4F; --ok2:#095b41; --blue:#2563eb; --violet:#9333ea; --red:#dc2626; }
+    html,body{height:100%}
+    body{font-family:Arial, sans-serif; background:#f5f7fb; margin:0; padding:24px}
+    .wrap{max-width:1100px; margin:0 auto}
+    .card{background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:18px; margin-bottom:16px; box-shadow:0 4px 10px rgba(0,0,0,.04)}
+    h2{margin:6px 0 16px; font-size:20px}
+    .row{display:grid; grid-template-columns:1fr 1fr 1fr 1fr 1fr; gap:10px}
+    .row label{font-weight:600; font-size:12px; color:#334155}
+    input, select{width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; box-sizing:border-box}
+    .btn{background:var(--ok); color:#fff; border:none; border-radius:8px; padding:10px 14px; cursor:pointer; font-weight:700}
+    .btn:hover{background:var(--ok2)}
+    table{width:100%; border-collapse:collapse}
+    th, td{padding:10px; border-bottom:1px solid #e5e7eb; text-align:left; font-size:14px}
+    th{background:#f1f5f9; font-weight:700}
+    .actions button{margin-right:6px}
+    .muted{color:#64748b; font-size:12px}
+    .badge{display:inline-block; padding:4px 8px; border-radius:999px; background:#eef2ff; color:#3730a3; font-weight:700; font-size:12px}
+    .toast{position:fixed; top:16px; right:16px; background:#0b6e4f; color:#fff; padding:10px 12px; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,.18); display:none; z-index:10}
+    .alert{background:#fee2e2; color:#7f1d1d; border:1px solid #fecaca; padding:8px 10px; border-radius:8px; display:none; margin-bottom:12px}
+    @media (max-width:900px){ .row{grid-template-columns:1fr 1fr} }
+    /* loader */
+    .loader{position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(255,255,255,.65); z-index:9}
+    .loader.show{display:flex}
+    .spin{width:36px; height:36px; border:4px solid #c7d2fe; border-top-color:#3b82f6; border-radius:50%; animation:spin .9s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="toast" id="toast"></div>
+    <div class="loader" id="loader"><div class="spin" aria-label="Carregando"></div></div>
+
+    <!-- CADASTRAR -->
+    <div class="card">
+      <h2>Cadastro rápido de usuário</h2>
+      <div class="alert" id="alert"></div>
+      <div class="row">
+        <div>
+          <label>Setor</label>
+          <input list="dl-setores" id="iSetor" placeholder="Ex.: CRAS MARIA JOSÉ (JARDIM)" autocomplete="off">
+          <datalist id="dl-setores"></datalist>
+        </div>
+        <div>
+          <label>Usuário</label>
+          <input id="iUsuario" placeholder="login do usuário" autocomplete="off">
+        </div>
+        <div>
+          <label>Senha inicial</label>
+          <input id="iSenha" type="text" placeholder="Ex.: 12345">
+        </div>
+        <div>
+          <label>E-mail (opcional)</label>
+          <input id="iEmail" type="email" placeholder="nome@dominio.com" autocomplete="off">
+        </div>
+        <div>
+          <label>Perfil</label>
+          <select id="iRole">
+            <option value="usuario">Usuário</option>
+            <option value="central">Central</option>
+            <option value="analista">Analista</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <button class="btn" id="btnCriar">Cadastrar</button>
+        <span class="muted">Dica: pode digitar um setor novo mesmo que não esteja na lista.</span>
+      </div>
+    </div>
+
+    <!-- LISTA -->
+    <div class="card">
+      <h2>Usuários por setor</h2>
+      <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px">
+        <input id="filtro" placeholder="Buscar por usuário/setor..." autocomplete="off">
+        <span class="badge" id="badgeTotal">0</span>
+      </div>
+      <div style="overflow:auto">
+        <table id="tb">
+          <thead>
+            <tr>
+              <th style="width:22%">Setor</th>
+              <th style="width:18%">Usuário</th>
+              <th style="width:22%">E-mail</th>
+              <th style="width:12%">Perfil</th>
+              <th style="width:26%">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+<script>
+  let base = []; // {linha,setor,usuario,email,role}
+  let setores = [];
+
+  // helpers UI
+  const $ = id => document.getElementById(id);
+  function toast(msg){ const t=$('toast'); t.innerText=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',2200); }
+  function showAlert(msg){ const a=$('alert'); a.innerText=msg; a.style.display='block'; setTimeout(()=>a.style.display='none',4200); }
+  function busy(on){ const l=$('loader'); if(on) l.classList.add('show'); else l.classList.remove('show'); }
+
+  // load
+  function carregar(){
+    busy(true);
+    google.script.run
+      .withSuccessHandler(function(resp){
+        busy(false);
+        const r = resp || {};
+        base = Array.isArray(r.usuarios) ? r.usuarios : [];
+        setores = Array.isArray(r.setores) ? r.setores : [];
+        popularSetores();
+        render(base);
+      })
+      .withFailureHandler(function(err){
+        busy(false);
+        showAlert('Falha ao carregar usuários: ' + (err && err.message ? err.message : 'erro desconhecido'));
+      })
+      .listarUsuariosLogin();
+  }
+
+  function popularSetores(){
+    const dl = $('dl-setores'); dl.innerHTML = '';
+    setores.forEach(s=>{ const o=document.createElement('option'); o.value=s; dl.appendChild(o); });
+  }
+
+  function render(arr){
+    const tb = $('tbody'); tb.innerHTML = '';
+    $('badgeTotal').innerText = arr.length;
+
+    arr.forEach(u=>{
+      const tr = document.createElement('tr');
+
+      // Setor (editável)
+      const tdSet = document.createElement('td');
+      const inSet = document.createElement('input');
+      inSet.value = u.setor || ''; inSet.style.width='100%';
+      inSet.onchange = ()=> u.setor = inSet.value;
+      tdSet.appendChild(inSet); tr.appendChild(tdSet);
+
+      // Usuário (editável)
+      const tdUsr = document.createElement('td');
+      const inUsr = document.createElement('input');
+      inUsr.value = u.usuario || ''; inUsr.style.width='100%';
+      inUsr.onchange = ()=> u.usuario = inUsr.value;
+      tdUsr.appendChild(inUsr); tr.appendChild(tdUsr);
+
+      // Email (editável)
+      const tdMail = document.createElement('td');
+      const inMail = document.createElement('input');
+      inMail.type='email'; inMail.value = u.email || ''; inMail.style.width='100%';
+      inMail.onchange = ()=> u.email = inMail.value;
+      tdMail.appendChild(inMail); tr.appendChild(tdMail);
+
+      // Role (editável)
+      const tdRole = document.createElement('td');
+      const sel = document.createElement('select');
+      ['usuario','central','analista','admin'].forEach(r=>{
+        const opt = document.createElement('option');
+        opt.value=r; opt.text=r.charAt(0).toUpperCase()+r.slice(1);
+        if ((u.role||'usuario')===r) opt.selected=true;
+        sel.appendChild(opt);
+      });
+      sel.onchange = ()=> u.role = sel.value;
+      tdRole.appendChild(sel); tr.appendChild(tdRole);
+
+      // Ações
+      const tdAc = document.createElement('td'); tdAc.className='actions';
+
+      const bSalvar = document.createElement('button');
+      bSalvar.className='btn'; bSalvar.textContent='Salvar';
+      bSalvar.onclick = ()=> salvar(u);
+
+      const bSenha = document.createElement('button');
+      bSenha.className='btn'; bSenha.style.background='var(--blue)';
+      bSenha.textContent='Definir senha';
+      bSenha.onclick = ()=> {
+        const nova = prompt('Nova senha para '+(u.usuario||'')+':');
+        if (!nova) return;
+        busy(true);
+        google.script.run
+          .withSuccessHandler(r=>{ busy(false); r && r.ok ? toast('Senha alterada.') : showAlert(r.msg||'Erro ao alterar senha.'); })
+          .withFailureHandler(e=>{ busy(false); showAlert('Erro ao alterar senha: '+(e?.message||'')); })
+          .alterarSenhaLogin(u.linha, String(nova));
+      };
+
+      const bReset = document.createElement('button');
+      bReset.className='btn'; bReset.style.background='var(--violet)';
+      bReset.textContent='Resetar senha';
+      bReset.onclick = ()=> {
+        if (!confirm('Gerar senha temporária para '+(u.usuario||'')+'?')) return;
+        busy(true);
+        google.script.run
+          .withSuccessHandler(r=>{
+            busy(false);
+            if (r && r.ok){ toast('Senha resetada.'); alert('Senha temporária: '+(r.senha||'')); }
+            else showAlert(r.msg||'Erro ao resetar senha.');
+          })
+          .withFailureHandler(e=>{ busy(false); showAlert('Erro ao resetar: '+(e?.message||'')); })
+          .resetarSenhaLogin(u.linha);
+      };
+
+      const bDel = document.createElement('button');
+      bDel.className='btn'; bDel.style.background='var(--red)';
+      bDel.textContent='Remover';
+      bDel.onclick = ()=> {
+        if (!confirm('Remover o usuário "'+(u.usuario||'')+'" do setor "'+(u.setor||'')+'"?')) return;
+        busy(true);
+        google.script.run
+          .withSuccessHandler(r=>{ busy(false); r && r.ok ? (toast('Removido.'), carregar()) : showAlert(r.msg||'Erro ao remover.'); })
+          .withFailureHandler(e=>{ busy(false); showAlert('Erro ao remover: '+(e?.message||'')); })
+          .excluirUsuarioLogin(u.linha);
+      };
+
+      tdAc.appendChild(bSalvar);
+      tdAc.appendChild(bSenha);
+      tdAc.appendChild(bReset);
+      tdAc.appendChild(bDel);
+      tr.appendChild(tdAc);
+
+      tb.appendChild(tr);
+    });
+  }
+
+  function salvar(u){
+    busy(true);
+    google.script.run
+      .withSuccessHandler(function(r){
+        busy(false);
+        if (r && r.ok){ toast('Alterações salvas.'); carregar(); }
+        else showAlert(r.msg||'Erro ao salvar.');
+      })
+      .withFailureHandler(function(e){
+        busy(false); showAlert('Erro ao salvar: '+(e && e.message ? e.message : ''));
+      })
+      .atualizarUsuarioLogin({ linha:u.linha, setor:u.setor, usuario:u.usuario, email:u.email, role:u.role });
+  }
+
+  function criar(){
+    const setor = $('iSetor').value.trim();
+    const usuario = $('iUsuario').value.trim();
+    const senha = $('iSenha').value;
+    const email = $('iEmail').value.trim();
+    const role = $('iRole').value;
+    if(!setor || !usuario || !senha){ showAlert('Informe Setor, Usuário e Senha.'); return; }
+
+    busy(true);
+    google.script.run
+      .withSuccessHandler(function(r){
+        busy(false);
+        if (r && r.ok){
+          toast('Usuário cadastrado.');
+          $('iUsuario').value=''; $('iSenha').value=''; $('iEmail').value='';
+          carregar();
+        } else showAlert(r.msg||'Erro ao cadastrar.');
+      })
+      .withFailureHandler(function(e){
+        busy(false); showAlert('Erro ao cadastrar: '+(e && e.message ? e.message : ''));
+      })
+      .criarUsuarioLogin({setor, usuario, senha, email, role});
+  }
+
+  function filtrar(){
+    const q = $('filtro').value.toLowerCase();
+    if (!q) { render(base); return; }
+    const f = base.filter(u =>
+      (u.setor||'').toLowerCase().includes(q) ||
+      (u.usuario||'').toLowerCase().includes(q) ||
+      (u.email||'').toLowerCase().includes(q) ||
+      (u.role||'').toLowerCase().includes(q)
+    );
+    render(f);
+  }
+
+  // binds
+  $('btnCriar').addEventListener('click', criar);
+  $('filtro').addEventListener('input', filtrar);
+
+  // start
+  carregar();
+</script>
+</body>
+</html>
