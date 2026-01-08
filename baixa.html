@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Baixa / Entrega de Benefícios — SEMFAS</title>
+
+  <style>
+    :root{
+      --bg-body:#f3f4f6;
+      --bg-card:#ffffff;
+      --primary:#2563eb;
+      --primary-soft:#eff4ff;
+      --danger:#dc2626;
+      --text-main:#111827;
+      --text-soft:#6b7280;
+      --border:#e5e7eb;
+      --radius-lg:14px;
+      --radius-md:10px;
+      --shadow-card:0 18px 40px rgba(15,23,42,.12);
+    }
+
+    *{box-sizing:border-box;}
+    html,body{margin:0;padding:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg-body);color:var(--text-main);}
+    body{padding:24px;}
+
+    .page{
+      max-width:1200px;
+      margin:0 auto 48px;
+    }
+
+    .page-header{
+      margin-bottom:20px;
+    }
+    .page-title{
+      font-size:22px;
+      font-weight:700;
+      letter-spacing:.02em;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .page-title span.badge{
+      font-size:11px;
+      padding:2px 8px;
+      border-radius:999px;
+      background:var(--primary-soft);
+      color:var(--primary);
+      font-weight:600;
+    }
+    .page-subtitle{
+      margin-top:4px;
+      font-size:13px;
+      color:var(--text-soft);
+    }
+
+    .card{
+      background:var(--bg-card);
+      border-radius:var(--radius-lg);
+      box-shadow:var(--shadow-card);
+      padding:18px 20px 16px;
+    }
+
+    .filters{
+      display:grid;
+      grid-template-columns: minmax(0,2.4fr) minmax(0,1.2fr) minmax(0,1.6fr) minmax(0,1.6fr) auto;
+      gap:10px;
+      align-items:flex-end;
+      margin-bottom:12px;
+    }
+
+    label.lbl{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      color:var(--text-soft);
+      margin-bottom:3px;
+      display:block;
+      font-weight:600;
+    }
+
+    .input-text,
+    .select{
+      width:100%;
+      border-radius:999px;
+      border:1px solid var(--border);
+      padding:7px 11px;
+      font-size:13px;
+      outline:none;
+      background:#f9fafb;
+    }
+    .input-text:focus,
+    .select:focus{
+      border-color:var(--primary);
+      background:#fff;
+    }
+
+    .inline-filters{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:flex-end;
+      gap:8px;
+      margin-bottom:10px;
+    }
+
+    .inline-filters .block{
+      display:flex;
+      flex-direction:column;
+      min-width:150px;
+    }
+
+    .inline-filters .dates{
+      display:flex;
+      gap:6px;
+    }
+
+    .chk-line{
+      display:flex;
+      align-items:center;
+      gap:4px;
+      font-size:12px;
+      color:var(--text-soft);
+      margin-right:10px;
+    }
+
+    .btn{
+      border:none;
+      border-radius:999px;
+      font-size:13px;
+      padding:7px 14px;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      white-space:nowrap;
+    }
+    .btn-primary{
+      background:var(--primary);
+      color:#fff;
+      font-weight:600;
+    }
+    .btn-secondary{
+      background:#e5e7eb;
+      color:#111827;
+      font-weight:500;
+    }
+    .btn-ghost{
+      background:transparent;
+      color:var(--text-soft);
+    }
+    .btn-sm{
+      padding:5px 10px;
+      font-size:12px;
+    }
+
+    .btn-primary:disabled{
+      opacity:.65;
+      cursor:default;
+    }
+
+    .table-wrapper{
+      margin-top:8px;
+      border-radius:var(--radius-md);
+      border:1px solid var(--border);
+      overflow:hidden;
+      background:#fff;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:13px;
+    }
+    thead{
+      background:#f9fafb;
+    }
+    thead th{
+      padding:8px 10px;
+      text-align:left;
+      font-weight:600;
+      color:var(--text-soft);
+      border-bottom:1px solid var(--border);
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+      white-space:nowrap;
+    }
+    tbody td{
+      padding:8px 10px;
+      border-bottom:1px solid #f3f4f6;
+      vertical-align:middle;
+    }
+    tbody tr:hover{
+      background:#f9fafb;
+    }
+
+    .chip-status{
+      padding:2px 8px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:600;
+      display:inline-flex;
+      align-items:center;
+    }
+    .chip-status.pendente{
+      background:#fef3c7;
+      color:#92400e;
+    }
+    .chip-status.aprovado{
+      background:#dcfce7;
+      color:#166534;
+    }
+    .chip-status.entregue{
+      background:#e0ecff;
+      color:#1d4ed8;
+    }
+    .chip-status.recusado{
+      background:#fee2e2;
+      color:#b91c1c;
+    }
+
+    .nome-link{
+      color:var(--primary);
+      text-decoration:none;
+      font-weight:500;
+    }
+    .nome-link:hover{text-decoration:underline;}
+
+    .pdf-link{
+      font-size:12px;
+      color:var(--primary);
+      text-decoration:none;
+      font-weight:500;
+    }
+    .pdf-link:hover{text-decoration:underline;}
+
+    .empty-state{
+      padding:18px 14px;
+      font-size:13px;
+      color:var(--text-soft);
+    }
+
+    .badge-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:5px;
+      padding:2px 9px;
+      border-radius:999px;
+      background:#f3f4f6;
+      font-size:11px;
+      color:var(--text-soft);
+    }
+
+    /* MODAL */
+    .modal-backdrop{
+      position:fixed;
+      inset:0;
+      background:rgba(15,23,42,.40);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:50;
+    }
+    .modal-backdrop.show{display:flex;}
+
+    .modal{
+      background:#fff;
+      border-radius:20px;
+      padding:20px 22px 18px;
+      width:100%;
+      max-width:620px;
+      box-shadow:0 24px 60px rgba(15,23,42,.28);
+      max-height:90vh;
+      overflow:auto;
+    }
+    .modal-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+      margin-bottom:10px;
+    }
+    .modal-title{
+      font-size:18px;
+      font-weight:700;
+    }
+    .modal-sub{
+      font-size:12px;
+      color:var(--text-soft);
+      margin-top:3px;
+    }
+    .modal-close{
+      border:none;
+      background:transparent;
+      font-size:18px;
+      cursor:pointer;
+      color:#9ca3af;
+    }
+
+    .modal-grid{
+      display:grid;
+      grid-template-columns: minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.1fr);
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .modal-grid-wide{
+      margin-top:4px;
+    }
+
+    textarea{
+      width:100%;
+      border-radius:10px;
+      border:1px solid var(--border);
+      padding:8px 10px;
+      font-size:13px;
+      resize:vertical;
+      min-height:70px;
+      font-family:inherit;
+      background:#f9fafb;
+    }
+    textarea:focus{
+      outline:none;
+      border-color:var(--primary);
+      background:#fff;
+    }
+
+    .modal-footer{
+      margin-top:14px;
+      display:flex;
+      justify-content:flex-end;
+      gap:6px;
+    }
+
+    /* Histórico CPF */
+    .hist-header{
+      font-size:13px;
+      color:var(--text-soft);
+      margin-bottom:10px;
+    }
+    .hist-list{
+      border-radius:10px;
+      border:1px solid var(--border);
+      overflow:hidden;
+      background:#f9fafb;
+      max-height:60vh;
+      overflow-y:auto;
+    }
+    .hist-row{
+      padding:8px 10px;
+      border-bottom:1px solid #e5e7eb;
+      font-size:12px;
+    }
+    .hist-row:last-child{border-bottom:none;}
+    .hist-top{
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      margin-bottom:2px;
+    }
+    .hist-top span.nome{font-weight:600;}
+    .hist-meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      color:var(--text-soft);
+    }
+    .hist-meta span{
+      padding:1px 6px;
+      border-radius:999px;
+      background:#e5e7eb;
+      font-size:11px;
+    }
+
+    .toast{
+      position:fixed;
+      bottom:18px;
+      right:18px;
+      background:#111827;
+      color:#f9fafb;
+      padding:9px 14px;
+      border-radius:999px;
+      font-size:12px;
+      display:none;
+      align-items:center;
+      gap:8px;
+      z-index:70;
+    }
+    .toast.show{display:flex;}
+    .dot{
+      width:7px;height:7px;border-radius:999px;background:#22c55e;
+    }
+
+    @media (max-width:900px){
+      body{padding:14px;}
+      .filters{
+        grid-template-columns:1fr;
+      }
+      .inline-filters{
+        flex-direction:column;
+        align-items:flex-start;
+      }
+      .modal-grid{
+        grid-template-columns:1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="page-header">
+      <div class="page-title">
+        Baixa / Entrega de Benefícios
+        <span class="badge">MÓDULO BAIXA</span>
+      </div>
+      <div class="page-subtitle">
+        Pesquise pelos registros, filtre por status / unidade / período e registre a entrega.
+        Clique no nome para ver o histórico completo por CPF.
+      </div>
+    </div>
+
+    <div class="card">
+      <!-- Linha principal de filtros -->
+      <div class="filters">
+        <div>
+          <label class="lbl">Busca rápida</label>
+          <input id="filtroBusca" class="input-text" type="text"
+                 placeholder="CPF, nome ou protocolo..." />
+        </div>
+
+        <div>
+          <label class="lbl">Status</label>
+          <select id="filtroStatus" class="select">
+            <option value="pendentes">Pendentes</option>
+            <option value="todos">Todos</option>
+            <option value="entregues">Entregues</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="lbl">Unidade / via de entrada</label>
+          <select id="filtroUnidade" class="select">
+            <option value="">Todas</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="lbl">Benefício</label>
+          <select id="filtroBeneficio" class="select">
+            <option value="">Todos</option>
+          </select>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+          <button id="btnBuscarRapido" class="btn btn-secondary btn-sm" type="button">
+            Buscar
+          </button>
+          <button id="btnLimpar" class="btn btn-ghost btn-sm" type="button">
+            Limpar
+          </button>
+        </div>
+      </div>
+
+      <!-- Filtros secundários -->
+      <div class="inline-filters">
+        <div class="block">
+          <label class="lbl">Período</label>
+          <div class="dates">
+            <input id="dataInicio" class="input-text" type="date" />
+            <input id="dataFim" class="input-text" type="date" />
+          </div>
+        </div>
+
+        <div class="chk-line">
+          <input id="chkPdf" type="checkbox" />
+          <span>Apenas com PDF</span>
+        </div>
+
+        <div class="chk-line">
+          <input id="chkProto" type="checkbox" />
+          <span>Apenas com protocolo</span>
+        </div>
+
+        <div class="block" style="min-width:180px;">
+          <label class="lbl">Ordenar por</label>
+          <select id="filtroOrder" class="select">
+            <option value="data_desc">Mais recentes primeiro</option>
+            <option value="data_asc">Mais antigos primeiro</option>
+            <option value="nome_asc">Nome A → Z</option>
+            <option value="nome_desc">Nome Z → A</option>
+            <option value="benef_asc">Benefício A → Z</option>
+            <option value="benef_desc">Benefício Z → A</option>
+            <option value="uni_asc">Unidade A → Z</option>
+            <option value="uni_desc">Unidade Z → A</option>
+            <option value="prot_asc">Protocolo ↑</option>
+            <option value="prot_desc">Protocolo ↓</option>
+          </select>
+        </div>
+
+        <div style="margin-left:auto;">
+          <button id="btnAplicarFiltros" class="btn btn-primary btn-sm" type="button">
+            Aplicar filtros
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th style="min-width:180px;">Nome</th>
+              <th>CPF</th>
+              <th style="min-width:170px;">Benefício</th>
+              <th style="min-width:170px;">Unidade</th>
+              <th>Solicitado em</th>
+              <th>Status</th>
+              <th>PDF</th>
+              <th style="text-align:right;">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyRegistros"></tbody>
+        </table>
+        <div id="estadoVazio" class="empty-state" style="display:none;">
+          Nenhum registro encontrado para os filtros selecionados.
+        </div>
+      </div>
+
+      <div style="margin-top:8px;font-size:11px;color:var(--text-soft);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span class="badge-pill">
+          <strong id="lblTotal">0</strong> registros listados
+        </span>
+        <span>Se precisar, a entrega pode ser desfeita pela Central, em “Entregue → Desfazer”.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ENTREGA -->
+  <div id="modalEntregaBackdrop" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">Registrar entrega</div>
+          <div id="modalEntregaResumo" class="modal-sub"></div>
+        </div>
+        <button class="modal-close" type="button" onclick="fecharModalEntrega()">×</button>
+      </div>
+
+      <div class="modal-grid">
+        <div>
+          <label class="lbl">Data da entrega</label>
+          <input id="entregaData" class="input-text" type="date" />
+        </div>
+
+        <div>
+          <label class="lbl">Entregue por</label>
+          <input id="entregaPor" class="input-text" type="text"
+                 placeholder="Nome de quem realizou a entrega" />
+        </div>
+
+        <div>
+          <label class="lbl">Unidade de entrega</label>
+          <select id="entregaUnidade" class="select">
+            <option value="">Selecione...</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-grid-wide">
+        <label class="lbl">Observação da entrega (opcional)</label>
+        <textarea id="entregaObs"
+                  placeholder="Ex.: entregue ao próprio beneficiário, acompanhado de..."></textarea>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalEntrega()">Cancelar</button>
+        <button id="btnConfirmarEntrega" class="btn btn-primary btn-sm" type="button">
+          Confirmar entrega
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL HISTÓRICO CPF -->
+  <div id="modalHistBackdrop" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">Histórico do CPF</div>
+          <div id="modalHistSub" class="modal-sub"></div>
+        </div>
+        <button class="modal-close" type="button" onclick="fecharModalHistorico()">×</button>
+      </div>
+
+      <div class="hist-header">
+        Todos os registros encontrados para este CPF (solicitações e entregas).
+      </div>
+      <div id="histLista" class="hist-list"></div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" type="button" onclick="fecharModalHistorico()">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast">
+    <span class="dot"></span>
+    <span id="toastText">Ação concluída.</span>
+  </div>
+
+  <script>
+    let REGISTROS_ATUAIS = [];
+    let REGISTRO_SELECIONADO = null;
+    let UNIDADES_OPCOES = [];
+    const LS_SETOR  = 'semfas_setor';
+    const LS_USUARIO= 'semfas_usuario';
+
+    function hojeISO(){
+      const d = new Date();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const da= String(d.getDate()).padStart(2,'0');
+      return d.getFullYear() + '-' + m + '-' + da;
+    }
+
+    function mostrarToast(msg){
+      const el = document.getElementById('toast');
+      document.getElementById('toastText').textContent = msg || '';
+      el.classList.add('show');
+      setTimeout(()=>el.classList.remove('show'), 2600);
+    }
+
+    function statusChip(statusRaw){
+      const s = String(statusRaw||'').toUpperCase();
+      let cls = 'pendente';
+      if (s === 'ENTREGUE') cls = 'entregue';
+      else if (s === 'APROVADO') cls = 'aprovado';
+      else if (s === 'RECUSADO') cls = 'recusado';
+      return `<span class="chip-status ${cls}">${s || 'PENDENTE'}</span>`;
+    }
+
+    function preencherTabela(registros){
+      REGISTROS_ATUAIS = registros || [];
+      const tbody = document.getElementById('tbodyRegistros');
+      const vazio = document.getElementById('estadoVazio');
+      tbody.innerHTML = '';
+
+      if (!REGISTROS_ATUAIS.length){
+        vazio.style.display = 'block';
+        document.getElementById('lblTotal').textContent = '0';
+        return;
+      }
+      vazio.style.display = 'none';
+      document.getElementById('lblTotal').textContent = REGISTROS_ATUAIS.length;
+
+      REGISTROS_ATUAIS.forEach((reg, idx)=>{
+        const tr = document.createElement('tr');
+
+        const tdNome = document.createElement('td');
+        const a = document.createElement('a');
+        a.href = 'javascript:void(0)';
+        a.className = 'nome-link';
+        a.textContent = reg.nome || '(sem nome)';
+        a.addEventListener('click', ()=>abrirHistorico(reg));
+        tdNome.appendChild(a);
+
+        const tdCpf   = document.createElement('td');
+        tdCpf.textContent = reg.cpf || '';
+
+        const tdBen   = document.createElement('td');
+        tdBen.textContent = reg.beneficio || '';
+
+        const tdUni   = document.createElement('td');
+        tdUni.textContent = reg.unidade || '';
+
+        const tdData  = document.createElement('td');
+        tdData.textContent = reg.solicitadoEm || '';
+
+        const tdStatus= document.createElement('td');
+        tdStatus.innerHTML = statusChip(reg.status);
+
+        const tdPdf   = document.createElement('td');
+        if (reg.pdf){
+          const link = document.createElement('a');
+          link.href = reg.pdf;
+          link.target = '_blank';
+          link.className = 'pdf-link';
+          link.textContent = 'PDF';
+          tdPdf.appendChild(link);
+        } else {
+          tdPdf.textContent = '—';
+          tdPdf.style.color = '#9ca3af';
+        }
+
+        const tdAcao  = document.createElement('td');
+        tdAcao.style.textAlign = 'right';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-primary btn-sm';
+        btn.textContent = 'Marcar entregue';
+        btn.disabled = (String(reg.status || '').toUpperCase() === 'ENTREGUE');
+        btn.addEventListener('click', ()=>abrirModalEntrega(reg));
+        tdAcao.appendChild(btn);
+
+        tr.appendChild(tdNome);
+        tr.appendChild(tdCpf);
+        tr.appendChild(tdBen);
+        tr.appendChild(tdUni);
+        tr.appendChild(tdData);
+        tr.appendChild(tdStatus);
+        tr.appendChild(tdPdf);
+        tr.appendChild(tdAcao);
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    function coletarFiltrosBase(){
+      const status    = document.getElementById('filtroStatus').value || 'pendentes';
+      const unidade   = document.getElementById('filtroUnidade').value || '';
+      const beneficio = document.getElementById('filtroBeneficio').value || '';
+      const order     = document.getElementById('filtroOrder').value || 'data_desc';
+      const pdfOnly   = document.getElementById('chkPdf').checked;
+      const hasProto  = document.getElementById('chkProto').checked;
+      const dataIni   = document.getElementById('dataInicio').value || '';
+      const dataFim   = document.getElementById('dataFim').value || '';
+      return { status, unidade, beneficio, order, pdfOnly, hasProto, dataIni, dataFim };
+    }
+
+    function carregarLista(){
+      const f = coletarFiltrosBase();
+      const btn = document.getElementById('btnAplicarFiltros');
+      btn.disabled = true;
+
+      google.script.run
+        .withSuccessHandler(res=>{
+          btn.disabled = false;
+          preencherTabela(res && res.registros ? res.registros : []);
+        })
+        .withFailureHandler(err=>{
+          btn.disabled = false;
+          console.error(err);
+          mostrarToast('Erro ao carregar registros.');
+        })
+        .baixa_list(f.status, f.unidade, f.beneficio, f.order, f.pdfOnly, f.hasProto, f.dataIni, f.dataFim);
+    }
+
+    function buscarRapido(){
+      const q = (document.getElementById('filtroBusca').value || '').trim();
+      if (!q){
+        carregarLista();
+        return;
+      }
+      const base = coletarFiltrosBase();
+      const btn = document.getElementById('btnBuscarRapido');
+      btn.disabled = true;
+
+      google.script.run
+        .withSuccessHandler(res=>{
+          btn.disabled = false;
+          preencherTabela(res && res.registros ? res.registros : []);
+        })
+        .withFailureHandler(err=>{
+          btn.disabled = false;
+          console.error(err);
+          mostrarToast('Erro na busca rápida.');
+        })
+        .baixa_search(q, base.status, base.unidade, base.beneficio, base.order, base.pdfOnly, base.hasProto, base.dataIni, base.dataFim);
+    }
+
+    function limparFiltros(){
+      document.getElementById('filtroBusca').value = '';
+      document.getElementById('filtroStatus').value = 'pendentes';
+      document.getElementById('filtroUnidade').value = '';
+      document.getElementById('filtroBeneficio').value = '';
+      document.getElementById('dataInicio').value = '';
+      document.getElementById('dataFim').value = '';
+      document.getElementById('chkPdf').checked = false;
+      document.getElementById('chkProto').checked = false;
+      document.getElementById('filtroOrder').value = 'data_desc';
+      carregarLista();
+    }
+
+    function preencherOpcoesFiltros(op){
+      op = op || {};
+      const unidades   = op.unidades   || [];
+      const beneficios = op.beneficios || [];
+      UNIDADES_OPCOES = unidades.slice();
+
+      const selUni = document.getElementById('filtroUnidade');
+      const selBen = document.getElementById('filtroBeneficio');
+      const selEntUni = document.getElementById('entregaUnidade');
+
+      // Limpa mantendo a primeira opção
+      selUni.options.length = 1;
+      selBen.options.length = 1;
+      selEntUni.options.length = 1;
+
+      unidades.forEach(u=>{
+        const o1 = document.createElement('option');
+        o1.value = u;
+        o1.textContent = u;
+        selUni.appendChild(o1);
+
+        const o2 = document.createElement('option');
+        o2.value = u;
+        o2.textContent = u;
+        selEntUni.appendChild(o2);
+      });
+
+      beneficios.forEach(b=>{
+        const o = document.createElement('option');
+        o.value = b;
+        o.textContent = b;
+        selBen.appendChild(o);
+      });
+
+      // Sugerir unidade logada no combo de entrega
+      const setorLogado = localStorage.getItem(LS_SETOR) || '';
+      if (setorLogado){
+        const opt = Array.from(selEntUni.options).find(o => o.value === setorLogado);
+        if (opt) selEntUni.value = setorLogado;
+      }
+    }
+
+    function carregarOpcoesFiltros(){
+      google.script.run
+        .withSuccessHandler(preencherOpcoesFiltros)
+        .withFailureHandler(err=>console.error(err))
+        .baixa_listarOpcoes();
+    }
+
+    /* ===== MODAL ENTREGA ===== */
+
+    function abrirModalEntrega(reg){
+      REGISTRO_SELECIONADO = reg;
+      const backdrop = document.getElementById('modalEntregaBackdrop');
+      const resumo = document.getElementById('modalEntregaResumo');
+
+      resumo.textContent =
+        (reg.nome || '') + ' • ' +
+        (reg.cpf || '') + ' • ' +
+        (reg.beneficio || '') + ' • ' +
+        (reg.unidade || '');
+
+      // Data da entrega = hoje por padrão
+      document.getElementById('entregaData').value = hojeISO();
+
+      // >>> ENTREGUE POR em branco conforme pedido
+      document.getElementById('entregaPor').value = '';
+
+      // Unidade de entrega: se houver setor logado, sugerir
+      const setorLogado = localStorage.getItem(LS_SETOR) || '';
+      const selEntUni = document.getElementById('entregaUnidade');
+      if (setorLogado){
+        const opt = Array.from(selEntUni.options).find(o=>o.value === setorLogado);
+        selEntUni.value = opt ? setorLogado : '';
+      } else {
+        selEntUni.value = '';
+      }
+
+      document.getElementById('entregaObs').value = '';
+
+      backdrop.classList.add('show');
+    }
+
+    function fecharModalEntrega(){
+      document.getElementById('modalEntregaBackdrop').classList.remove('show');
+      REGISTRO_SELECIONADO = null;
+    }
+
+    function confirmarEntrega(){
+      if (!REGISTRO_SELECIONADO) return;
+
+      const dataEntrega = document.getElementById('entregaData').value;
+      const quem        = (document.getElementById('entregaPor').value || '').trim();
+      const unidadeEnt  = document.getElementById('entregaUnidade').value || '';
+      const obs         = document.getElementById('entregaObs').value || '';
+
+      if (!dataEntrega){
+        alert('Informe a data da entrega.');
+        return;
+      }
+      if (!quem){
+        alert('Informe em "Entregue por" o nome de quem realizou a entrega.');
+        return;
+      }
+      if (!unidadeEnt){
+        alert('Selecione a unidade de entrega.');
+        return;
+      }
+
+      const payload = {
+        rowRef: REGISTRO_SELECIONADO.rowRef,
+        dataEntrega: dataEntrega,
+        setor: unidadeEnt,
+        usuario: quem,
+        obs: obs
+      };
+
+      const btn = document.getElementById('btnConfirmarEntrega');
+      btn.disabled = true;
+
+      google.script.run
+        .withSuccessHandler(ok=>{
+          btn.disabled = false;
+          fecharModalEntrega();
+          mostrarToast('Entrega registrada com sucesso.');
+          carregarLista();
+        })
+        .withFailureHandler(err=>{
+          btn.disabled = false;
+          console.error(err);
+          alert('Erro ao registrar entrega: ' + (err && err.message ? err.message : err));
+        })
+        .baixa_marcarEntrega(payload);
+    }
+
+    /* ===== MODAL HISTÓRICO CPF ===== */
+
+    function abrirHistorico(reg){
+      if (!reg || !reg.cpf) return;
+
+      const cpf = reg.cpf;
+      const backdrop = document.getElementById('modalHistBackdrop');
+      const sub = document.getElementById('modalHistSub');
+      sub.textContent = cpf + ' • ' + (reg.nome || '');
+
+      const lista = document.getElementById('histLista');
+      lista.innerHTML = '<div class="hist-row">Carregando histórico...</div>';
+      backdrop.classList.add('show');
+
+      google.script.run
+        .withSuccessHandler(res=>{
+          const registros = (res && res.registros) ? res.registros : [];
+          if (!registros.length){
+            lista.innerHTML = '<div class="hist-row">Nenhum registro encontrado para este CPF.</div>';
+            return;
+          }
+          lista.innerHTML = '';
+          registros.forEach(r=>{
+            const div = document.createElement('div');
+            div.className = 'hist-row';
+
+            const top = document.createElement('div');
+            top.className = 'hist-top';
+            const spanNome = document.createElement('span');
+            spanNome.className = 'nome';
+            spanNome.textContent = r.beneficio || '(benefício não informado)';
+            const spanData = document.createElement('span');
+            spanData.textContent = r.data || '';
+            top.appendChild(spanNome);
+            top.appendChild(spanData);
+
+            const meta = document.createElement('div');
+            meta.className = 'hist-meta';
+
+            const st = document.createElement('span');
+            st.textContent = 'Status: ' + (r.status || '');
+            meta.appendChild(st);
+
+            if (r.unidade){
+              const sp = document.createElement('span');
+              sp.textContent = r.unidade;
+              meta.appendChild(sp);
+            }
+            if (r.entregue_em){
+              const sp = document.createElement('span');
+              sp.textContent = 'Entregue em ' + r.entregue_em;
+              meta.appendChild(sp);
+            }
+            if (r.unidade_entrega){
+              const sp = document.createElement('span');
+              sp.textContent = 'Unidade de entrega: ' + r.unidade_entrega;
+              meta.appendChild(sp);
+            }
+            if (r.entregue_por){
+              const sp = document.createElement('span');
+              sp.textContent = 'Entregue por: ' + r.entregue_por;
+              meta.appendChild(sp);
+            }
+            if (r.obs_entrega){
+              const sp = document.createElement('span');
+              sp.textContent = 'Obs.: ' + r.obs_entrega;
+              meta.appendChild(sp);
+            }
+
+            if (r.protocolo){
+              const sp = document.createElement('span');
+              sp.textContent = 'Protocolo ' + r.protocolo;
+              meta.appendChild(sp);
+            }
+
+            if (r.pdf){
+              const sp = document.createElement('span');
+              const a = document.createElement('a');
+              a.href = r.pdf;
+              a.target = '_blank';
+              a.textContent = 'PDF';
+              a.style.color = '#1d4ed8';
+              a.style.textDecoration = 'none';
+              sp.appendChild(a);
+              meta.appendChild(sp);
+            }
+
+            div.appendChild(top);
+            div.appendChild(meta);
+            lista.appendChild(div);
+          });
+        })
+        .withFailureHandler(err=>{
+          console.error(err);
+          lista.innerHTML = '<div class="hist-row">Erro ao carregar histórico.</div>';
+        })
+        .historicoPorCPF(cpf);
+    }
+
+    function fecharModalHistorico(){
+      document.getElementById('modalHistBackdrop').classList.remove('show');
+    }
+
+    /* ===== INIT ===== */
+    document.addEventListener('DOMContentLoaded', ()=>{
+      document.getElementById('btnAplicarFiltros').addEventListener('click', carregarLista);
+      document.getElementById('btnBuscarRapido').addEventListener('click', buscarRapido);
+      document.getElementById('btnLimpar').addEventListener('click', limparFiltros);
+      document.getElementById('btnConfirmarEntrega').addEventListener('click', confirmarEntrega);
+
+      document.getElementById('filtroBusca').addEventListener('keydown', e=>{
+        if (e.key === 'Enter') buscarRapido();
+      });
+
+      carregarOpcoesFiltros();
+      carregarLista();
+    });
+  </script>
+</body>
+</html>
