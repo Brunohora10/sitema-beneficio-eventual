@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 30px;
+        background-color: #f4f4f4;
+      }
+      .container {
+        max-width: 400px;
+        margin: auto;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+      }
+      select, input[type="text"], input[type="password"] {
+        width: 100%;
+        padding: 10px;
+        margin: 8px 0;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      button {
+        width: 100%;
+        padding: 10px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      #mensagemLogin {
+        text-align: center;
+        margin-top: 15px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2 style="text-align:center">Login do Sistema</h2>
+      <label for="setor">Setor:</label>
+      <select id="setor">
+        <option value="CRAS ANGELA MARIA (NOVO HORIZONTE)">CRAS ANGELA MARIA (NOVO HORIZONTE)</option>
+        <option value="CRAS DR. FRANKLIN (PARQUE DOS FAROIS)">CRAS DR. FRANKLIN (PARQUE DOS FAROIS)</option>
+        <option value="CRAS MARIA JOSÉ (JARDIM)">CRAS MARIA JOSÉ (JARDIM)</option>
+        <option value="CRAS PROF MARIA LUIZA (MARCOS FREIRE I)">CRAS PROF MARIA LUIZA (MARCOS FREIRE I)</option>
+        <option value="CRAS ZILDA ARNS (JOÃO ALVES)">CRAS ZILDA ARNS (JOÃO ALVES)</option>
+        <option value="CREAS MARCOS FREIRE">CREAS MARCOS FREIRE</option>
+        <option value="CREAS LEONEL BRIZOLA (PARQUE DOS FAROIS)">CREAS LEONEL BRIZOLA (PARQUE DOS FAROIS)</option>
+        <option value="Admin">Admin</option>
+      </select>
+
+      <label for="usuario">Usuário:</label>
+      <input type="text" id="usuario" placeholder="Digite o usuário">
+
+      <label for="senha">Senha:</label>
+      <input type="password" id="senha" placeholder="Digite a senha">
+
+      <button onclick="validarLoginFront()">Entrar</button>
+
+      <div id="mensagemLogin"></div>
+    </div>
+
+    <script>
+      function validarLoginFront() {
+        const setor = document.getElementById('setor').value;
+        const usuario = document.getElementById('usuario').value;
+        const senha = document.getElementById('senha').value;
+
+        const mensagem = document.getElementById('mensagemLogin');
+        mensagem.textContent = "Validando...";
+        mensagem.style.color = 'black';
+
+        google.script.run.withSuccessHandler(function (resposta) {
+          if (resposta.status) {
+            mensagem.style.color = 'green';
+            mensagem.textContent = "✅ Login bem-sucedido!";
+          } else {
+            mensagem.style.color = 'red';
+            mensagem.textContent = "❌ Erro: " + resposta.mensagem;
+          }
+        }).validarLogin(setor, usuario, senha);
+      }
+    </script>
+  </body>
+</html>
